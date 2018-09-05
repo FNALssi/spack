@@ -34,7 +34,7 @@ class Vecgeom(CMakePackage):
     homepage = "https://gitlab.cern.ch/VecGeom/VecGeom"
     url = "https://gitlab.cern.ch/api/v4/projects/VecGeom%2FVecGeom/repository/archive.tar.gz?sha=v0.3.rc"
 
-    version('0.3.rc', 'c1f5d620f655f3c0610a44e7735203b5')
+    version('00.05.00', git='https://gitlab.cern.ch/VecGeom/VecGeom.git', tag='v00.05.00')
 
     depends_on('cmake@3.5:', type='build')
 
@@ -43,12 +43,17 @@ class Vecgeom(CMakePackage):
             '-DBACKEND=Scalar',
             '-DGEANT4=OFF',
             '-DUSOLIDS=ON',
-            '-DUSOLIDS_VECGEOM=ON'
+            '-DUSOLIDS_VECGEOM=ON',
+            '-DROOT=OFF',
+            '-DCMAKE_BUILD_TYPE=Release', 
+            '-DNO_SPECIALIZATION=ON',
+            '-DCMAKE_VERBOSE_MAKEFILE=TRUE', 
+            '-DCMAKE_CXX_STANDARD=17'
         ]
 
         arch = platform.machine()
         if arch == 'x86_64':
-            options.append('-DVECGEOM_VECTOR=sse4.2')
+            options.append('-DVECGEOM_VECTOR=sse3')
         else:
             options.append('-DVECGEOM_VECTOR=' + arch)
         return options
