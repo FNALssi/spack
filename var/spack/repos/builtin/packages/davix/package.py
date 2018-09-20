@@ -40,4 +40,3 @@ class Davix(CMakePackage):
     depends_on('libuuid')
     depends_on('openssl')
 
-    patch('davix-0.6.7-uuid.patch', when="@0.6.7")

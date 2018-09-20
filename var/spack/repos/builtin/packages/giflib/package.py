@@ -33,8 +33,10 @@ class Giflib(AutotoolsPackage):
     url      = "https://downloads.sourceforge.net/project/giflib/giflib-5.1.4.tar.bz2"
 
     version('5.1.4', '2c171ced93c0e83bb09e6ccad8e3ba2b')
+    version('4.2.3', '067b821b016ce81a7d303a4049774be6',
+             url='https://sourceforge.net/projects/giflib/files/giflib-4.x/giflib-4.2.3.tar.gz/download')
 
-    patch('bsd-head.patch')
+    patch('bsd-head.patch', when='@5.0:')
 
     def check(self):
         make('check', parallel=False)
