@@ -22,21 +22,16 @@
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 ##############################################################################
+import contextlib
 import os
 import re
 import itertools
 from six import iteritems
+from six.moves import zip as iterzip
+from six.moves import shlex_quote as cmd_quote
+from six.moves import cPickle
 from operator import itemgetter
-import cPickle
-# TODO: This would be easier if we could import builtins in Python2.
-try:
-    from itertools import izip as iterzip
-except ImportError:
-    iterzip = zip
-try:
-    from pipes import quote as cmd_quote
-except ImportError:
-    from shlex import quote as cmd_quote
+
 
 system_paths = ['/', '/usr', '/usr/local']
 suffixes = ['bin', 'bin64', 'include', 'lib', 'lib64']
@@ -72,11 +67,17 @@ def deprioritize_system_paths(paths):
     return filter_system_paths(paths) + system_paths(paths)
 
 
+# Necessary to accommodate Python 2.6. When support is dropped, replace
+# _count with with itertools.count().
+def _count(start=0, step=1):
+    for i in itertools.count():
+        yield start + i * step
+
+
 def prune_duplicate_paths(paths):
     """Returns the paths with duplicates removed, order preserved."""
     return [key for key, value in
-            sorted(iteritems(dict(iterzip(reversed(paths),
-                                          itertools.count(0, -1)))),
+            sorted(iteritems(dict(iterzip(reversed(paths), _count(0, -1)))),
                    key=itemgetter(1))]
 
 
@@ -115,6 +116,8 @@ def path_put_first(var_name, directories):
 
 
 bash_function_finder = re.compile(r'BASH_FUNC_(.*?)\(\)')
+
+
 def env_var_to_source_line(var, val):
     source_line = 'function {fname}{decl}; export -f {fname}'.\
                   format(fname=bash_function_finder.sub(r'\1', var),
@@ -134,3 +137,30 @@ def dump_environment(path, environment=os.environ):
 def pickle_environment(path, environment=os.environ):
     """Pickle an environment dictionary to a file."""
     cPickle.dump(dict(environment), open(path, 'wb'), protocol=2)
+
+
+@contextlib.contextmanager
+def set_env(**kwargs):
+    """Temporarily sets and restores environment variables.
+
+    Variables can be set as keyword arguments to this function.
+    """
+    saved = {}
+    for var, value in kwargs.items():
+        if var in os.environ:
+            saved[var] = os.environ[var]
+
+        if value is None:
+            if var in os.environ:
+                del os.environ[var]
+        else:
+            os.environ[var] = value
+
+    yield
+
+    for var, value in kwargs.items():
+        if var in saved:
+            os.environ[var] = saved[var]
+        else:
+            if var in os.environ:
+                del os.environ[var]
