@@ -83,13 +83,9 @@ def validate_env_name(name):
     return name
 
 
-    def execute(self):
-        environment_value = os.environ.get(self.name, '')
-        directories = environment_value.split(
-            self.separator) if environment_value else []
-        directories.append(os.path.normpath(self.value))
-        os.environ[self.name] = self.separator.join(directories)
-
+def activate(env, use_env_repo=False):
+    """Activate an environment.
+ 
     To activate an environment, we add its configuration scope to the
     existing Spack configuration, and we set active to the current
     environment.
