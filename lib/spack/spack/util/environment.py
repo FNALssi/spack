@@ -3,7 +3,11 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+"""Utilities for setting and modifying environment variables."""
+import collections
 import contextlib
+import inspect
+import json
 import os
 import re
 import itertools
