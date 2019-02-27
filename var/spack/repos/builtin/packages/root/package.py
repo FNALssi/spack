@@ -239,9 +239,11 @@ class Root(CMakePackage):
                                   self.spec['lz4'].prefix)
 
     def setup_dependent_environment(self, spack_env, run_env, dependent_spec):
-        spack_env.set('ROOTSYS', self.prefix)
-        spack_env.set('ROOT_VERSION', 'v{0}'.format(self.version.up_to(1)))
-        spack_env.prepend_path('PYTHONPATH', self.prefix.lib)
-        run_env.set('ROOTSYS', self.prefix)
-        run_env.set('ROOT_VERSION', 'v{0}'.format(self.version.up_to(1)))
-        run_env.prepend_path('PYTHONPATH', self.prefix.lib)
+        spack_env.set('ROOTSYS', dependent_spec['root'].prefix)
+        spack_env.set('ROOT_VERSION', 'v{0}'.format(dependent_spec['root'].version.up_to(1)))
+        spack_env.prepend_path('PYTHONPATH', dependent_spec['root'].prefix.lib)
+        spack_env.prepend_path('PATH', dependent_spec['root'].prefix.bin)
+        run_env.set('ROOTSYS', dependent_spec['root'].prefix)
+        run_env.set('ROOT_VERSION', 'v{0}'.format(dependent_spec['root'].version.up_to(1)))
+        run_env.prepend_path('PYTHONPATH', dependent_spec['root'].prefix.lib)
+        run_env.prepend_path('PATH', dependent_spec['root'].prefix.bin)
