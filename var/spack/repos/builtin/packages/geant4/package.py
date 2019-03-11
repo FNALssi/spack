@@ -126,8 +126,7 @@ class Geant4(CMakePackage):
         return ("http://geant4.cern.ch/support/source/geant4.%s.tar.gz" % version)
 
     def setup_dependent_environment(self, spack_env, run_env, dep_spec):
-        spec = dep_spec['geant4']
-        version = spec.version
+        version = self.version
         major = version[0]
         minor = version[1]
         if len(version) > 2:
@@ -137,4 +136,4 @@ class Geant4(CMakePackage):
         data = 'Geant4-%s.%s.%s/data' % (major, minor, patch)
         spack_env.append_path('CMAKE_MODULE_PATH',
                               '{0}/{1}/Modules'.format(
-                               dep_spec['geant4'].prefix.lib64, data))
+                               self.prefix.lib64, data))
