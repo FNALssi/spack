@@ -152,13 +152,6 @@ class Root(CMakePackage):
     variant('xrootd', default=False,
         description='Build xrootd file server and its client')
 
-    # ################# Variants dependencies ##########################
-
-    # Davix variant also requires openssl support
-
-    # If not x variant, then asimage,opengl,qt4 and tiff are not needed either
-    # or: if ~x then ~asimage~opengl~qt4~tiff
-
     # ###################### Compiler variants ########################
 
     variant('cxxstd',
@@ -166,6 +159,8 @@ class Root(CMakePackage):
             values=('11', '14', '17'),
             multi=False,
             description='Use the specified C++ standard when building.')
+
+    # ###################### Dependencies ######################
 
     depends_on('cmake@3.4.3:', type='build')
     depends_on('pkgconfig', type='build')
@@ -252,6 +247,8 @@ class Root(CMakePackage):
     # depends_on('gfal')
     # depends_on('ldap')
     # depends_on('rfio')
+
+    # ###################### Conflicts ######################
 
     # I was unable to build root with any Intel compiler
     # See https://sft.its.cern.ch/jira/browse/ROOT-7517
