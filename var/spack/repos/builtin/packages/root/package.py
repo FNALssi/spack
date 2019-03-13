@@ -474,10 +474,11 @@ class Root(CMakePackage):
             options.append('-DCMAKE_PROGRAM_PATH={0}'.format(
                 self.spec['mysql-client'].prefix.bin))
 
-        if 'ftgl' in self.spec:
-            options.append('-DFTGL_ROOT_DIR={0}'.format(self.spec['ftgl'].prefix))
+        if '+x+opengl' in self.spec:
+            options.append('-DFTGL_ROOT_DIR={0}'.format(
+                self.spec['ftgl'].prefix))
             options.append('-DFTGL_INCLUDE_DIR={0}'.format(
-                os.path.join(self.spec['ftgl'].prefix, 'include')))
+                self.spec['ftgl'].prefix.include))
 
         return options
 
