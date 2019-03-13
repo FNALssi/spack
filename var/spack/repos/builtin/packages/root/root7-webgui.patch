@@ -1,0 +1,13 @@
+diff --git a/gui/CMakeLists.txt b/gui/CMakeLists.txt
+index 499c427180..91703c9f37 100644
+--- a/gui/CMakeLists.txt
++++ b/gui/CMakeLists.txt
+@@ -6,7 +6,7 @@ add_subdirectory(guihtml)
+ add_subdirectory(recorder)
+ add_subdirectory(sessionviewer)
+ 
+-if(cxx14 OR cxx17 OR root7)
++if(root7 AND http AND (cxx14 OR cxx17))
+    add_subdirectory(webdisplay)
+    if(cefweb)
+       add_subdirectory(cefdisplay)
