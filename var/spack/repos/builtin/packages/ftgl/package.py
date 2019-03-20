@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 from spack import *
-import sys
-import os
 
 
 class Ftgl(AutotoolsPackage):
@@ -21,8 +19,10 @@ class Ftgl(AutotoolsPackage):
     patch('ftgl-2.1.3-rc5-ldflags.patch')
 
     def patch(self):
-        filter_file('SUBDIRS = src test demo docs', 'SUBDIRS = src test demo', 'Makefile.am')
-        filter_file('SUBDIRS = src test demo docs', 'SUBDIRS = src test demo', 'Makefile.in')
+        filter_file('SUBDIRS = src test demo docs',
+                    'SUBDIRS = src test demo', 'Makefile.am')
+        filter_file('SUBDIRS = src test demo docs',
+                    'SUBDIRS = src test demo', 'Makefile.in')
 
     # Ftgl does not come with a configure script
     depends_on('autoconf', type='build')
@@ -47,6 +47,5 @@ class Ftgl(AutotoolsPackage):
                     self.spec['glu'].prefix.include),
                 '--with-glut-lib={0}'.format(
                     self.spec['glu'].prefix.lib),
-                '--with-x'
-               ]
+                '--with-x']
         return args
