@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 import os
+import platform
 import re
 import tarfile
 import shutil
@@ -27,7 +28,7 @@ from spack.spec import Spec
 from spack.stage import Stage
 from spack.util.gpg import Gpg
 from spack.util.web import spider, read_from_url
-from spack.util.executable import ProcessError
+from spack.util.executable import Executable, ProcessError
 
 
 _build_cache_relative_path = 'build_cache'
@@ -155,11 +156,24 @@ def write_buildinfo_file(prefix, workdir, rel=False):
                         tty.warn(msg)
 
             if relocate.needs_binary_relocation(m_type, m_subtype):
-                rel_path_name = os.path.relpath(path_name, prefix)
-                binary_to_relocate.append(rel_path_name)
+                if not filename.endswith('.o'):
+                    rel_path_name = os.path.relpath(path_name, prefix)
+                    binary_to_relocate.append(rel_path_name)
             if relocate.needs_text_relocation(m_type, m_subtype):
                 rel_path_name = os.path.relpath(path_name, prefix)
                 text_to_relocate.append(rel_path_name)
+
+    patchelf = Executable(relocate.get_patchelf())
+    old_rpaths = set()
+    for f in binary_to_relocate:
+        filename = '%s/%s' % (prefix, f)
+        if platform.system().lower() == 'linux':
+            if patchelf:
+                rpaths = patchelf('--print-rpath', filename, output=str)
+                old_rpaths.update(rpaths.strip().split(':'))
+        if platform.system().lower() == 'darwin':
+            rpaths, deps, idpath = relocate.macho_get_paths(filename)
+            old_rpaths.update(rpaths)
 
     # Create buildinfo data and write it to disk
     buildinfo = {}
@@ -171,6 +185,8 @@ def write_buildinfo_file(prefix, workdir, rel=False):
     buildinfo['relocate_textfiles'] = text_to_relocate
     buildinfo['relocate_binaries'] = binary_to_relocate
     buildinfo['relocate_links'] = link_to_relocate
+    buildinfo['orig_rpaths'] = old_rpaths
+    tty.debug('buildinfo:\n%s' % buildinfo)
     filename = buildinfo_file_name(workdir)
     with open(filename, 'w') as outfile:
         outfile.write(syaml.dump(buildinfo, default_flow_style=True))
@@ -424,11 +440,11 @@ def make_package_relative(workdir, spec, allow_root):
         orig_path_names.append(os.path.join(prefix, filename))
         cur_path_names.append(os.path.join(workdir, filename))
     if spec.architecture.platform == 'darwin':
-        relocate.make_macho_binary_relative(cur_path_names, orig_path_names,
-                                            old_path, allow_root)
+        relocate.make_macho_binaries_relative(cur_path_names, orig_path_names,
+                                              old_path, allow_root)
     else:
-        relocate.make_elf_binary_relative(cur_path_names, orig_path_names,
-                                          old_path, allow_root)
+        relocate.make_elf_binaries_relative(cur_path_names, orig_path_names,
+                                            old_path, allow_root)
     orig_path_names = list()
     cur_path_names = list()
     for filename in buildinfo.get('relocate_links', []):
@@ -439,15 +455,24 @@ def make_package_relative(workdir, spec, allow_root):
 
 def make_package_placeholder(workdir, spec, allow_root):
     """
-    Check if package binaries are relocatable
-    Change links to placeholder links
+    Remove rpaths in the install root for later replacement.
+    Check if package binaries are relocatable.
+    Change links to placeholder links.
     """
     prefix = spec.prefix
     buildinfo = read_buildinfo_file(workdir)
+    old_path = buildinfo['buildpath']
     cur_path_names = list()
+    orig_path_names = list()
     for filename in buildinfo['relocate_binaries']:
         cur_path_names.append(os.path.join(workdir, filename))
     relocate.check_files_relocatable(cur_path_names, allow_root)
+    if spec.architecture.platform == 'darwin':
+        relocate.make_macho_binaries_clean(cur_path_names, orig_path_names,
+                                           old_path, allow_root)
+    else:
+        relocate.make_elf_binaries_clean(cur_path_names, orig_path_names,
+                                         old_path, allow_root)
 
     cur_path_names = list()
     for filename in buildinfo.get('relocate_links', []):
@@ -465,6 +490,7 @@ def relocate_package(workdir, spec, allow_root):
     old_path = buildinfo['buildpath']
     old_prefix = buildinfo.get('spackprefix', '/not/in/buildinfo/dictionary')
     rel = buildinfo.get('relative_rpaths', False)
+    rpaths = buildinfo.get('orig_rpaths', list())
     if rel:
         return
 
@@ -487,11 +513,11 @@ def relocate_package(workdir, spec, allow_root):
             path_name = os.path.join(workdir, filename)
             path_names.add(path_name)
         if spec.architecture.platform == 'darwin':
-            relocate.relocate_macho_binaries(path_names, old_path, new_path,
-                                             allow_root)
+            relocate.relocate_macho_binaries(path_names, rpaths, old_path,
+                                             new_path, allow_root)
         else:
-            relocate.relocate_elf_binaries(path_names, old_path, new_path,
-                                           allow_root)
+            relocate.relocate_elf_binaries(path_names, rpaths, old_path,
+                                           new_path, allow_root)
         path_names = set()
         for filename in buildinfo.get('relocate_links', []):
             path_name = os.path.join(workdir, filename)

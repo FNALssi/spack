@@ -5,8 +5,8 @@
 
 
 import os
-import re
 import platform
+import re
 import spack.repo
 import spack.cmd
 import llnl.util.lang
@@ -66,6 +66,10 @@ def get_patchelf():
     Returns the full patchelf binary path.
     """
     # as we may need patchelf, find out where it is
+    if str(spack.architecture.platform()) == 'test':
+        return None
+    if str(spack.architecture.platform()) == 'darwin':
+        return None
     patchelf = spack.util.executable.which('patchelf')
     if patchelf is None:
         patchelf_spec = spack.cmd.parse_specs("patchelf", concretize=True)[0]
@@ -260,10 +264,12 @@ def modify_macho_object(cur_path, rpaths, deps, idpath,
         args.extend(['-id', new_idpath])
 
     for orig, new in zip(deps, new_deps):
-        args.extend(['-change', orig, new])
-
-    for orig, new in zip(rpaths, new_rpaths):
-        args.extend(['-rpath', orig, new])
+        if not orig == new:
+            args.extend(['-change', orig, new])
+    for orig in list(set(rpaths)):
+        args.extend(['-delete_rpath', orig])
+    for new in list(set(new_rpaths)):
+        args.extend(['-add_rpath', new])
     args.append(str(cur_path))
     install_name_tool(*args)
     return
@@ -281,6 +287,9 @@ def modify_object_machotools(cur_path, rpaths, deps, idpath,
     The old install dir in LC_RPATH is replaced with the new install dir using
     using py-machotools
     """
+    if cur_path.endswith('.o'):
+        return
+    tty.debug('Running machotools on %s\n' % cur_path)
     try:
         import machotools
     except ImportError as e:
@@ -289,8 +298,9 @@ def modify_object_machotools(cur_path, rpaths, deps, idpath,
     if machotools.detect.is_dylib(cur_path):
         rewriter.install_name = new_idpath
     for orig, new in zip(deps, new_deps):
-        rewriter.change_dependency(orig, new)
-    for orig, new in zip(rpaths, new_rpaths):
+        if not orig == new:
+            rewriter.change_dependency(orig, new)
+    for new in list(set(new_rpaths)):
         rewriter.append_rpath(new)
     rewriter.commit()
     return
@@ -389,14 +399,22 @@ def replace_prefix_bin(path_name, old_dir, new_dir):
         f.truncate()
 
 
-def relocate_macho_binaries(path_names, old_dir, new_dir, allow_root):
+def relocate_macho_binaries(path_names, rpaths, old_dir, new_dir, allow_root):
     """
     Change old_dir to new_dir in RPATHs of elf or mach-o files
     Account for the case where old_dir is now a placeholder
     """
     placeholder = set_placeholder(old_dir)
     for path_name in path_names:
-        (rpaths, deps, idpath) = machotools_get_paths(path_name)
+        deps = set()
+        idpath = ""
+        if platform.system().lower() == 'darwin':
+            if path_name.end_with('.o'):
+                continue
+            else:
+                (rpaths, deps, idpath) = macho_get_paths(path_name)
+        else:
+            (rpaths, deps, idpath) = machotools_get_paths(path_name)
         # one pass to replace placeholder
         (n_rpaths,
          n_deps,
@@ -413,19 +431,26 @@ def relocate_macho_binaries(path_names, old_dir, new_dir, allow_root):
                                            n_rpaths,
                                            n_deps,
                                            n_idpath)
-        modify_object_machotools(path_name,
-                                 rpaths, deps, idpath,
-                                 new_rpaths, new_deps, new_idpath)
-        if len(new_dir) <= len(old_dir):
-            replace_prefix_bin(path_name, old_dir, new_dir)
+        if platform.system().lower() == 'darwin':
+            modify_macho_object(path_name,
+                                rpaths, deps, idpath,
+                                new_rpaths, new_deps, new_idpath)
+            # only try binary string replacement in mach-o binaries
+            # on macOS
+            if len(new_dir) <= len(old_dir):
+                replace_prefix_bin(path_name, old_dir, new_dir)
+            else:
+                tty.warn('Cannot do a binary string replacement'
+                         ' with padding for %s'
+                         ' because %s is longer than %s' %
+                         (path_name, new_dir, old_dir))
         else:
-            tty.warn('Cannot do a binary string replacement'
-                     ' with padding for %s'
-                     ' because %s is longer than %s' %
-                     (path_name, new_dir, old_dir))
+            modify_object_machotools(path_name,
+                                     rpaths, deps, idpath,
+                                     new_rpaths, new_deps, new_idpath)
 
 
-def relocate_elf_binaries(path_names, old_dir, new_dir, allow_root):
+def relocate_elf_binaries(path_names, rpaths, old_dir, new_dir, allow_root):
     """
     Change old_dir to new_dir in RPATHs of elf binaries
     Account for the case where old_dir is now a placeholder
@@ -462,27 +487,64 @@ def make_link_relative(cur_path_names, orig_path_names):
         os.symlink(new_src, cur_path)
 
 
-def make_macho_binary_relative(cur_path_names, orig_path_names, old_dir,
-                               allow_root):
+def make_macho_binaries_relative(cur_path_names, orig_path_names, old_dir,
+                                 allow_root):
     """
     Replace old RPATHs with paths relative to old_dir in binary files
     """
     for cur_path, orig_path in zip(cur_path_names, orig_path_names):
-        rpaths, deps, idpath = machotools_get_paths(cur_path)
+        rpaths = set()
+        deps = set()
+        idpath = ""
+        if platform.system().lower() == 'darwin':
+            (rpaths, deps, idpath) = macho_get_paths(cur_path)
+        else:
+            (rpaths, deps, idpath) = machotools_get_paths(cur_path)
         (new_rpaths,
          new_deps,
          new_idpath) = macho_make_paths_relative(orig_path, old_dir,
                                                  rpaths, deps, idpath)
-        modify_object_machotools(cur_path,
-                                 rpaths, deps, idpath,
-                                 new_rpaths, new_deps, new_idpath)
+        if platform.system().lower() == 'darwin':
+            modify_macho_object(cur_path,
+                                rpaths, deps, idpath,
+                                new_rpaths, new_deps, new_idpath)
+        else:
+            modify_object_machotools(cur_path,
+                                     rpaths, deps, idpath,
+                                     new_rpaths, new_deps, new_idpath)
+
         if (not allow_root and
-                not file_is_relocatable(cur_path, old_dir)):
+                not file_is_relocatable(cur_path)):
             raise InstallRootStringException(cur_path, old_dir)
 
 
-def make_elf_binary_relative(cur_path_names, orig_path_names, old_dir,
-                             allow_root):
+def make_macho_binaries_clean(cur_path_names, orig_path_names, old_dir,
+                              allow_root):
+    """
+    Remove RPATHs in mach-o binary files for later replacement
+    """
+    for cur_path in cur_path_names:
+        rpaths = set()
+        deps = set()
+        idpath = ""
+        if platform.system().lower() == 'darwin':
+            (rpaths, deps, idpath) = macho_get_paths(cur_path)
+            modify_macho_object(cur_path,
+                                rpaths, deps, idpath,
+                                list(), deps, idpath)
+        else:
+            (rpaths, deps, idpath) = machotools_get_paths(cur_path)
+            modify_object_machotools(cur_path,
+                                     rpaths, deps, idpath,
+                                     list(), deps, idpath)
+
+        if (not allow_root and
+                not file_is_relocatable(cur_path)):
+            raise InstallRootStringException(cur_path, old_dir)
+
+
+def make_elf_binaries_relative(cur_path_names, orig_path_names, old_dir,
+                               allow_root):
     """
     Replace old RPATHs with paths relative to old_dir in binary files
     """
@@ -493,7 +555,25 @@ def make_elf_binary_relative(cur_path_names, orig_path_names, old_dir,
                                              orig_rpaths)
             modify_elf_object(cur_path, new_rpaths)
         if (not allow_root and
-                not file_is_relocatable(cur_path, old_dir)):
+                not file_is_relocatable(cur_path)):
+            raise InstallRootStringException(cur_path, old_dir)
+
+
+def make_elf_binaries_clean(cur_path_names, orig_path_names, old_dir,
+                            allow_root):
+    """
+    Remove RPATHS in elf binary files for later replacement
+    """
+    for cur_path in cur_path_names:
+        orig_rpaths = get_existing_elf_rpaths(cur_path)
+        new_rpaths = set()
+        if orig_rpaths:
+            for rpath in orig_rpaths:
+                if not rpath.contains(old_dir):
+                    new_rpaths.add(rpath)
+        modify_elf_object(cur_path, new_rpaths)
+        if (not allow_root and
+                not file_is_relocatable(cur_path)):
             raise InstallRootStringException(cur_path, old_dir)
 
 
