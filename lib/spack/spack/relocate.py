@@ -59,7 +59,8 @@ def get_existing_elf_rpaths(path_name):
         try:
             output = patchelf('--print-rpath', '%s' %
                               path_name, output=str, error=str)
-            return output.rstrip('\n').split(':')
+            # first two entries are compiler lib paths
+            return output.rstrip('\n').split(':')[2:]
         except ProcessError as e:
             tty.debug('patchelf --print-rpath produced an error on %s' %
                       path_name, e)
@@ -289,7 +290,7 @@ def needs_text_relocation(m_type, m_subtype):
     return (m_type == "text")
 
 
-def relocate_binary(path_names, old_dir, new_dir, allow_root):
+def relocate_binary(path_names, old_dir, new_dir, allow_root, comp_path):
     """
     Change old_dir to new_dir in RPATHs of elf or mach-o files
     Account for the case where old_dir is now a placeholder
@@ -332,6 +333,9 @@ def relocate_binary(path_names, old_dir, new_dir, allow_root):
                 # one pass to replace old_dir
                 new_rpaths = substitute_rpath(n_rpaths,
                                               old_dir, new_dir)
+                if not comp_path in new_rpaths:
+                    new_rpaths.append(comp_path+os.sep+'lib')
+                    new_rpaths.append(comp_path+os.sep+'lib64')
                 modify_elf_object(path_name, new_rpaths)
                 if (not allow_root and
                     old_dir != new_dir and

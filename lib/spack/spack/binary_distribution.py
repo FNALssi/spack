@@ -454,7 +454,7 @@ def make_package_placeholder(workdir, prefix, allow_root):
     relocate.make_link_placeholder(cur_path_names, workdir, prefix)
 
 
-def relocate_package(workdir, allow_root):
+def relocate_package(spec, workdir, allow_root):
     """
     Relocate the given package
     """
@@ -485,7 +485,8 @@ def relocate_package(workdir, allow_root):
         for filename in buildinfo['relocate_binaries']:
             path_name = os.path.join(workdir, filename)
             path_names.add(path_name)
-        relocate.relocate_binary(path_names, old_path, new_path, allow_root)
+        comp_path = os.path.dirname(os.path.dirname(spec.package.compiler.cc))
+        relocate.relocate_binary(path_names, old_path, new_path, allow_root, comp_path)
         path_names = set()
         for filename in buildinfo.get('relocate_links', []):
             path_name = os.path.join(workdir, filename)
@@ -572,7 +573,7 @@ def extract_tarball(spec, filename, allow_root=False, unsigned=False,
     os.remove(specfile_path)
 
     try:
-        relocate_package(workdir, allow_root)
+        relocate_package(spec, workdir, allow_root)
     except Exception as e:
         shutil.rmtree(workdir)
         tty.die(str(e))
