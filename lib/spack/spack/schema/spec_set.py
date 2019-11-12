@@ -5,7 +5,7 @@
 
 """Schema for Spack spec-set configuration file.
 
-.. literalinclude:: ../spack/schema/spec_set.py
+.. literalinclude:: _spack_root/lib/spack/spack/schema/spec_set.py
    :lines: 32-
 """
 
@@ -83,8 +83,9 @@ schema = {
                 'cdash': {
                     'oneOf': [
                         {'type': 'string'},
-                        {'type': 'array',
-                         'items': {'type': 'string'}
+                        {
+                            'type': 'array',
+                            'items': {'type': 'string'}
                         },
                     ],
                 },

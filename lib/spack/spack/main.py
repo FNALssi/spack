@@ -16,6 +16,7 @@ import os
 import inspect
 import pstats
 import argparse
+import traceback
 from six import StringIO
 
 import llnl.util.tty as tty
@@ -23,9 +24,9 @@ import llnl.util.tty.color as color
 from llnl.util.tty.log import log_output
 
 import spack
+from spack.command_loading import all_commands, get_command_module, get_command
 import spack.architecture
 import spack.config
-import spack.cmd
 import spack.environment as ev
 import spack.hooks
 import spack.paths
@@ -101,22 +102,15 @@ def set_working_dir():
 
 def add_all_commands(parser):
     """Add all spack subcommands to the parser."""
-    for cmd in spack.cmd.all_commands():
-        try:
-            parser.add_command(cmd)
-        except Exception:
-            if spack.config.get('config:debug'):
-                raise
-            tty.die(
-                'While finding commands: problem loading command {0}'.
-                format(cmd))
+    for cmd in all_commands():
+        parser.add_command(cmd)
 
 
 def index_commands():
     """create an index of commands by section for this help level"""
     index = {}
-    for command in spack.cmd.all_commands():
-        cmd_module = spack.cmd.get_module(command)
+    for command in all_commands():
+        cmd_module = get_command_module(command)
 
         # make sure command modules have required properties
         for p in required_command_properties:
@@ -174,7 +168,7 @@ class SpackArgumentParser(argparse.ArgumentParser):
             self.actions = self._subparsers._actions[-1]._get_subactions()
 
         # make a set of commands not yet added.
-        remaining = set(spack.cmd.all_commands())
+        remaining = set(all_commands())
 
         def add_group(group):
             formatter.start_section(group.title)
@@ -252,9 +246,9 @@ class SpackArgumentParser(argparse.ArgumentParser):
 {help}:
   spack help --all       list all commands and options
   spack help <command>   help on a specific command
-  spack help --spec      help on the spec syntax
-  spack docs             open http://spack.rtfd.io/ in a browser"""
-.format(help=section_descriptions['help']))
+  spack help --spec      help on the package specification syntax
+  spack docs             open http://spack.rtfd.io/ in a browser
+""".format(help=section_descriptions['help']))
 
         # determine help from format above
         return formatter.format_help()
@@ -283,7 +277,7 @@ class SpackArgumentParser(argparse.ArgumentParser):
 
         # each command module implements a parser() function, to which we
         # pass its subparser for setup.
-        module = spack.cmd.get_module(cmd_name)
+        module = get_command_module(cmd_name)
 
         # build a list of aliases
         alias_list = [k for k, v in aliases.items() if v == cmd_name]
@@ -294,7 +288,7 @@ class SpackArgumentParser(argparse.ArgumentParser):
         module.setup_parser(subparser)
 
         # return the callable function for the command
-        return spack.cmd.get_command(cmd_name)
+        return get_command(cmd_name)
 
     def format_help(self, level='short'):
         if self.prog == 'spack':
@@ -512,6 +506,7 @@ class SpackCommand(object):
             self.returncode = e.code
 
         except BaseException as e:
+            tty.debug(e)
             self.error = e
             if fail_on_error:
                 raise
@@ -587,7 +582,9 @@ def print_setup_info(*info):
     module_to_roots = {
         'tcl': list(),
         'dotkit': list(),
-        'lmod': list()
+        'lmod': list(),
+        'ups_table': list(),
+        'ups_version': list(),
     }
     for name, path in module_roots.items():
         path = spack.util.path.canonicalize_path(path)
@@ -674,13 +671,7 @@ def main(argv=None):
         cmd_name = args.command[0]
         cmd_name = aliases.get(cmd_name, cmd_name)
 
-        try:
-            command = parser.add_command(cmd_name)
-        except Exception:
-            if spack.config.get('config:debug'):
-                raise
-            tty.die(
-                "Unknown command or failed command load: %s" % args.command[0])
+        command = parser.add_command(cmd_name)
 
         # Re-parse with the proper sub-parser added.
         args, unknown = parser.parse_known_args()
@@ -703,18 +694,23 @@ def main(argv=None):
             return _invoke_command(command, parser, args, unknown)
 
     except SpackError as e:
+        tty.debug(e)
         e.die()  # gracefully die on any SpackErrors
 
     except Exception as e:
         if spack.config.get('config:debug'):
             raise
-        tty.die(str(e))
+        tty.die(e)
 
     except KeyboardInterrupt:
+        if spack.config.get('config:debug'):
+            raise
         sys.stderr.write('\n')
         tty.die("Keyboard interrupt.")
 
     except SystemExit as e:
+        if spack.config.get('config:debug'):
+            traceback.print_exc()
         return e.code
 
 

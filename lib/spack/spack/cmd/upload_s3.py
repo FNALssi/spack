@@ -57,7 +57,7 @@ def setup_parser(subparser):
     index = subparsers.add_parser('index', help=update_index.__doc__)
 
     index.add_argument('-e', '--endpoint-url',
-        default='https://s3.spack.io', help='URL of mirror')
+                       default='https://s3.spack.io', help='URL of mirror')
 
     index.set_defaults(func=update_index)
 
@@ -158,7 +158,8 @@ def upload_spec(args):
         try:
             spec = Spec(args.spec)
             spec.concretize()
-        except Exception:
+        except Exception as e:
+            tty.debug(e)
             tty.error('Unable to concrectize spec from string {0}'.format(
                 args.spec))
             sys.exit(1)
@@ -166,7 +167,8 @@ def upload_spec(args):
         try:
             with open(args.spec_yaml, 'r') as fd:
                 spec = Spec.from_yaml(fd.read())
-        except Exception:
+        except Exception as e:
+            tty.debug(e)
             tty.error('Unable to concrectize spec from yaml {0}'.format(
                 args.spec_yaml))
             sys.exit(1)
