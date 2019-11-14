@@ -10,7 +10,6 @@ import re
 import spack.repo
 import spack.cmd
 import llnl.util.lang
-import llnl.util.filesystem as fs
 from spack.util.executable import Executable, ProcessError
 import llnl.util.tty as tty
 
@@ -303,6 +302,27 @@ def needs_text_relocation(m_type, m_subtype):
     return (m_type == "text")
 
 
+def replace_prefix_text(path_name, old_dir, new_dir):
+    """
+    Replace old install prefix with new install prefix
+    in text files using utf-8 encoded strings.
+    """
+
+    def replace(match):
+        return match.group().replace(old_dir.encode('utf-8'),
+                                     new_dir.encode('utf-8'))
+    tty.debug('replace_prefix_text(%s,%s,%s)' % (path_name, old_dir, new_dir))
+    with open(path_name, 'rb+') as f:
+        data = f.read()
+        f.seek(0)
+        pat = re.compile(old_dir.encode('utf-8'))
+        if not pat.search(data):
+            return
+        ndata = pat.sub(replace, data)
+        f.write(ndata)
+        f.truncate()
+
+
 def replace_prefix_bin(path_name, old_dir, new_dir):
     """
     Attempt to replace old install prefix with new install prefix
@@ -311,27 +331,32 @@ def replace_prefix_bin(path_name, old_dir, new_dir):
     """
 
     def replace(match):
-        occurances = match.group().count(old_dir)
-        padding = (len(old_dir) - len(new_dir)) * occurances
+        occurances = match.group().count(old_dir.encode('utf-8'))
+        olen = len(old_dir.encode('utf-8'))
+        nlen = len(new_dir.encode('utf-8'))
+        padding = (olen - nlen) * occurances
         if padding < 0:
             return data
-        return match.group().replace(old_dir, new_dir) + b'\0' * padding
+        return match.group().replace(old_dir.encode('utf-8'),
+                                     new_dir.encode('utf-8')) + b'\0' * padding
 
+    tty.debug('replace_prefix_bin(%s,%s,%s)' % (path_name, old_dir, new_dir))
     with open(path_name, 'rb+') as f:
         data = f.read()
         f.seek(0)
         original_data_len = len(data)
-        pat = re.compile(re.escape(old_dir) + b'([^\0]*?)\0')
+        pat = re.compile(old_dir.encode('utf-8') + b'([^\0]*?)\0')
+        if not pat.search(data):
+            return
         ndata = pat.sub(replace, data)
-        new_data_len = len(ndata)
-        if not new_data_len == original_data_len:
+        if not len(ndata) == original_data_len:
             raise BinaryStringReplacementException(
-                path_name, original_data_len, new_data_len)
-        f.write(data)
+                path_name, original_data_len, len(ndata))
+        f.write(ndata)
         f.truncate()
 
 
-def relocate_binary(path_names, old_dir, new_dir, allow_root, comp_path):
+def relocate_binary(path_names, old_dir, new_dir, allow_root, spec):
     """
     Change old_dir to new_dir in RPATHs of elf or mach-o files
     Account for the case where old_dir is now a placeholder
@@ -359,34 +384,19 @@ def relocate_binary(path_names, old_dir, new_dir, allow_root, comp_path):
             modify_macho_object(path_name,
                                 rpaths, deps, idpath,
                                 new_rpaths, new_deps, new_idpath)
-            if len(new_dir) <= len(old_dir):
-                replace_prefix_bin(path_name, old_dir, new_dir)
-            else:
-                tty.warn('Cannot do a binary string replacement'
-                         ' with padding for %s'
-                         ' because %s is longer than %s' %
-                         (path_name, new_dir, old_dir))
     elif platform.system() == 'Linux':
+        new_rpaths = []
+        comp_path = os.path.dirname(os.path.dirname(spec.package.compiler.cc))
+        tty.debug('comp_path %s' % comp_path)
+        n_rpaths = spack.build_environment.get_rpaths(spec.package)
+        tty.debug('n_rpaths %s' % n_rpaths)
+        if comp_path not in new_rpaths:
+            new_rpaths.append(comp_path + os.sep + 'lib')
+            new_rpaths.append(comp_path + os.sep + 'lib64')
+        new_rpaths.extend(n_rpaths)
+        tty.debug('new_rpaths %s' % new_rpaths)
         for path_name in path_names:
-            orig_rpaths = get_existing_elf_rpaths(path_name)
-            if orig_rpaths:
-                # one pass to replace placeholder
-                n_rpaths = substitute_rpath(orig_rpaths,
-                                            placeholder, new_dir)
-                # one pass to replace old_dir
-                new_rpaths = substitute_rpath(n_rpaths,
-                                              old_dir, new_dir)
-                if not comp_path in new_rpaths:
-                    new_rpaths.append(comp_path+os.sep+'lib')
-                    new_rpaths.append(comp_path+os.sep+'lib64')
-                modify_elf_object(path_name, new_rpaths)
-                if len(new_dir) <= len(old_dir):
-                    replace_prefix_bin(path_name, old_dir, new_dir)
-                else:
-                    tty.warn('Cannot do a binary string replacement'
-                             ' with padding for %s'
-                             ' because %s is longer than %s.' %
-                             (path_name, new_dir, old_dir))
+            modify_elf_object(path_name, new_rpaths)
     else:
         tty.die("Relocation not implemented for %s" % platform.system())
 
@@ -489,18 +499,17 @@ def relocate_links(path_names, old_dir, new_dir):
         os.symlink(new_src, path_name)
 
 
-def relocate_text(path_names, oldpath, newpath, oldprefix, newprefix):
+def relocate_text(path_names, oldpath, newpath, oldprefix, newprefix,
+                  oldsprefix, newsprefix):
     """
     Replace old path with new path in text file path_name
     """
-    fs.filter_file('%s' % oldpath, '%s' % newpath, *path_names,
-                   backup=False, string=True)
-    sbangre = '#!/bin/bash %s/bin/sbang' % oldprefix
-    sbangnew = '#!/bin/bash %s/bin/sbang' % newprefix
-    fs.filter_file(sbangre, sbangnew, *path_names,
-                   backup=False, string=True)
-    fs.filter_file(oldprefix, newprefix, *path_names,
-                   backup=False, string=True)
+    sbangre = '#!/bin/bash %s/bin/sbang' % oldsprefix
+    sbangnew = '#!/bin/bash %s/bin/sbang' % newsprefix
+    for path_name in path_names:
+        replace_prefix_text(path_name, oldprefix, newprefix)
+        replace_prefix_text(path_name, sbangre, sbangnew)
+        replace_prefix_text(path_name, oldpath, newpath)
 
 
 def substitute_rpath(orig_rpath, topdir, new_root_path):
