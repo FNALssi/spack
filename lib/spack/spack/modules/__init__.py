@@ -11,6 +11,8 @@ from __future__ import absolute_import
 
 from .tcl import TclModulefileWriter
 from .lmod import LmodModulefileWriter
+from .ups_table import UpsTableModulefileWriter
+from .ups_version import UpsVersionModulefileWriter
 
 __all__ = [
     'TclModulefileWriter',
