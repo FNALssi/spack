@@ -14,12 +14,15 @@ import llnl.util.tty as tty
 
 import spack.config
 import spack.tengine as tengine
++import spack.projections as proj
 from .common import BaseConfiguration, BaseFileLayout
 from .common import BaseContext, BaseModuleFileWriter
 from .common import root_path
 
 #: TCL specific part of the configuration
-configuration = spack.config.get('modules:ups_table', {})
+
+def configuration():
+    return spack.config.get('modules:ups_table', {})
 
 #: Caches the configuration {spec_hash: configuration}
 configuration_registry = {}
@@ -82,12 +85,12 @@ class UpsTableContext(BaseContext):
     def conflicts(self):
         """List of conflicts for the ups_table module file."""
         fmts = []
-        naming_scheme = self.conf.naming_scheme
+        projection = proj.get_projection(self.conf.projections, self.spec)
         f = string.Formatter()
         for item in self.conf.conflicts:
             if len([x for x in f.parse(item)]) > 1:
                 for naming_dir, conflict_dir in zip(
-                        naming_scheme.split('/'), item.split('/')
+                        projection.split('/'), item.split('/')
                 ):
                     if naming_dir != conflict_dir:
                         message = 'conflict scheme does not match naming '
@@ -97,7 +100,7 @@ class UpsTableContext(BaseContext):
                         message += '** You may want to check your '
                         message += '`modules.yaml` configuration file **\n'
                         tty.error(message.format(spec=self.spec,
-                                                 nformat=naming_scheme,
+                                                 nformat=projection,
                                                  cformat=item))
                         raise SystemExit('Module generation aborted.')
                 item = self.spec.format(item)

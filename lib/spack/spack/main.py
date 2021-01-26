@@ -768,6 +768,7 @@ def main(argv=None):
         e.die()  # gracefully die on any SpackErrors
 
     except Exception as e:
+        tty.debug(e)
         if spack.config.get('config:debug'):
             raise
         tty.die(e)
