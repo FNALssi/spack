@@ -14,7 +14,7 @@ import llnl.util.tty as tty
 
 import spack.config
 import spack.tengine as tengine
-+import spack.projections as proj
+import spack.projections as proj
 from .common import BaseConfiguration, BaseFileLayout
 from .common import BaseContext, BaseModuleFileWriter
 from .common import root_path
