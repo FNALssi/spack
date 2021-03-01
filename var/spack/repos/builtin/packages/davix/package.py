@@ -25,6 +25,8 @@ class Davix(CMakePackage):
             multi=False,
             description='Use the specified C++ standard when building.')
 
+    variant('thirdparty',default=True)
+
     depends_on('pkgconfig', type='build')
     depends_on('libxml2')
     depends_on('libuuid')
@@ -33,6 +35,10 @@ class Davix(CMakePackage):
     def cmake_args(self):
         cmake_args = ['-DCMAKE_CXX_STANDARD={0}'.format(
                       self.spec.variants['cxxstd'].value)]
+
+        if self.spec.variants['thirdparty']:
+            cmake_args.append('-DENABLE_THIRD_PARTY_COPY=ON')
+
         if 'darwin' in self.spec.architecture:
             cmake_args.append('-DCMAKE_MACOSX_RPATH=ON')
         return cmake_args
