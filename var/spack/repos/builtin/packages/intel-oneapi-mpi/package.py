@@ -1,4 +1,4 @@
-# Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -50,10 +50,8 @@ class IntelOneapiMpi(IntelOneApiLibraryPackage):
     def libs(self):
         libs = []
         for dir in ['lib/release_mt', 'lib', 'libfabric/lib']:
-            lib_path = '{0}/{1}/latest/{2}'.format(self.prefix, self._dir_name,
-                                                   dir)
-            ldir = find_libraries('*', root=lib_path, shared=True,
-                                  recursive=False)
+            lib_path = '{0}/{1}/latest/{2}'.format(self.prefix, self._dir_name, dir)
+            ldir = find_libraries('*', root=lib_path, shared=True, recursive=False)
             libs += ldir
         return libs
 

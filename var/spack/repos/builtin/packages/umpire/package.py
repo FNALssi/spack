@@ -1,4 +1,4 @@
-# Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -61,6 +61,7 @@ class Umpire(CMakePackage, CudaPackage, ROCmPackage):
     depends_on('cmake@3.9:', when='+cuda', type='build')
 
     depends_on('blt', type='build')
+    depends_on('blt@0.3.7:', type='build', when='+rocm')
 
     # variants +rocm and amdgpu_targets are not automatically passed to
     # dependencies, so do it manually.
@@ -72,6 +73,10 @@ class Umpire(CMakePackage, CudaPackage, ROCmPackage):
 
     conflicts('+numa', when='@:0.3.2')
     conflicts('~c', when='+fortran', msg='Fortran API requires C API')
+
+    # device allocator exports device code, which requires static libs
+    # currently only available for cuda.
+    conflicts('+shared', when='+cuda')
 
     def cmake_args(self):
         spec = self.spec

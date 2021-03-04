@@ -1,4 +1,4 @@
-# Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -122,7 +122,7 @@ class UnsatisfiableSpecError(SpecError):
        Provide the requirement that was violated when raising."""
     def __init__(self, provided, required, constraint_type):
         super(UnsatisfiableSpecError, self).__init__(
-            "%s does not satisfy %s" % (provided, required))
+            "%s does not satisfy %s constraint %s" % (provided, required, constraint_type))
         self.provided = provided
         self.required = required
         self.constraint_type = constraint_type

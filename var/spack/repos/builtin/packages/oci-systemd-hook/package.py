@@ -1,4 +1,4 @@
-# Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -23,11 +23,14 @@ class OciSystemdHook(AutotoolsPackage):
     depends_on('m4',       type='build')
     depends_on('gettext')
     depends_on('yajl')
+    depends_on('uuid')
     depends_on('util-linux')
     depends_on('go-md2man')
 
     def configure_args(self):
-        args = ['LDFLAGS=-lintl']
+        args = []
+        if self.spec['gettext'].prefix != '/usr':
+            args = ['LDFLAGS=-lintl']
         return args
 
     def install(self, spec, prefix):
