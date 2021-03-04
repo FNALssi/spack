@@ -88,6 +88,9 @@ class Llvm(CMakePackage, CudaPackage):
         default=True,
         description="Build the LLVM C++ standard library",
     )
+    variant('link_dylib', default=False,
+            description="Build and link the libLLVM shared library rather "
+            "than static")
     variant(
         "compiler-rt",
         default=True,
@@ -395,6 +398,9 @@ class Llvm(CMakePackage, CudaPackage):
                     "-DLIBOMPTARGET_DEP_CUDA_DRIVER_LIBRARIES:STRING=IGNORE",
                 ]
             )
+
+        if '+link_dylib' in spec:
+            cmake_args.append('-DLLVM_LINK_LLVM_DYLIB:Bool=ON')
 
         if "+omp_debug" in spec:
             cmake_args.append("-DLIBOMPTARGET_ENABLE_DEBUG:Bool=ON")

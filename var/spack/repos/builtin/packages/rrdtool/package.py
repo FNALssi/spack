@@ -22,5 +22,7 @@ class Rrdtool(AutotoolsPackage):
     depends_on('perl-extutils-makemaker')
 
     def configure_args(self):
-        args = ['LDFLAGS=-lintl']
+        args = []
+        if self.spec['gettext'].prefix != '/usr':
+           args = ['LDFLAGS=-lintl']
         return args

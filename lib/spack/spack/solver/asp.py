@@ -938,8 +938,9 @@ class SpackSolverSetup(object):
                 # validate variant value
                 reserved_names = spack.directives.reserved_names
                 if (not spec.virtual and vname not in reserved_names):
-                    variant_def = spec.package.variants[vname]
-                    variant_def.validate_or_raise(variant, spec.package)
+                    variant_def = spec.package.variants.get(vname,None)
+                    if variant_def:
+                        variant_def.validate_or_raise(variant, spec.package)
 
                 clauses.append(f.variant_value(spec.name, vname, value))
 
