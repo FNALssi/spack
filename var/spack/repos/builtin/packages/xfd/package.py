@@ -31,7 +31,7 @@ class Xfd(AutotoolsPackage, XorgPackage):
     # Xfd requires libintl (gettext), but does not test for it
     # correctly, so add it here.
     def flag_handler(self, name, flags):
-        if name == 'ldlibs':
+        if name == 'ldlibs' and self.spec['gettext'].prefix != '/usr':
             flags.append('-lintl')
 
         return (flags, None, None)

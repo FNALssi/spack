@@ -29,5 +29,7 @@ class Systemtap(AutotoolsPackage):
     depends_on('python', type=('build', 'run'))
 
     def configure_args(self):
-        args = ['LDFLAGS=-lintl']
+        args = []
+        if self.spec['gettext'].prefix != '/usr':
+            args = ['LDFLAGS=-lintl']
         return args
