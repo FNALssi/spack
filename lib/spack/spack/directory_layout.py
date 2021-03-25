@@ -18,7 +18,7 @@ import spack.config
 import spack.hash_types as ht
 import spack.spec
 from spack.error import SpackError
-
+import llnl.util.tty as tty
 
 default_projections = {'all': ('{architecture}/'
                                '{compiler.name}-{compiler.version}/'
@@ -331,6 +331,7 @@ class YamlDirectoryLayout(DirectoryLayout):
         path = self.path_for_spec(spec)
         spec_file_path = self.spec_file_path(spec)
 
+
         if not os.path.isdir(path):
             return None
 
@@ -357,7 +358,9 @@ class YamlDirectoryLayout(DirectoryLayout):
             return path
 
         if spec.dag_hash() == installed_spec.dag_hash():
-            raise SpecHashCollisionError(spec, installed_spec)
+            tty.warn("Notice: pretinding {0} and {1} are the same"
+                 .format(spec, installed_spec))
+            return path
         else:
             raise InconsistentInstallDirectoryError(
                 'Spec file in %s does not match hash!' % spec_file_path)

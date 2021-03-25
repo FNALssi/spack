@@ -1229,6 +1229,7 @@ class Spec(object):
         """Called by the parser to add another spec as a dependency."""
         if spec.name in self._dependencies:
             # mengel -- just ignore it..
+            tty.warn("Notice: ignoring multiple depdency %s on %s" % (spec,self))
             return
             #raise DuplicateDependencyError(
             #    "Cannot depend on '%s' twice" % spec)
@@ -3025,6 +3026,9 @@ class Spec(object):
             if self.satisfies(other):
                 return False
             else:
+                tty.warn("Notice: Pretending installed spec {0} has {1}"
+                    .format(self, other))
+                return True  # mengel hack
                 raise spack.error.UnsatisfiableSpecError(
                     self, other, 'constrain a concrete spec'
                 )

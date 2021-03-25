@@ -325,7 +325,7 @@ environment variables:
             msg = 'skipped invalid file "{0}". '
             msg += 'The file does not contain a concrete spec.'
             tty.warn(msg.format(file))
-            continue
+            #continue -- mengel hack
 
         abstract_specs.append(s)
         specs.append(concretized)
