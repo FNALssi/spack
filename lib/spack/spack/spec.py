@@ -1022,6 +1022,8 @@ class Spec(object):
     #: Cache for spec's prefix, computed lazily in the corresponding property
     _prefix = None
 
+    _already_warned = set()
+
     def __init__(self, spec_like=None,
                  normal=False, concrete=False, external_path=None,
                  external_modules=None, full_hash=None):
@@ -3029,8 +3031,11 @@ class Spec(object):
                 # earlier version of a recipe that you have specified
                 # by hash that doesn't mention a variant in a newer
                 # recipe...
-                tty.notice("Notice: pretending installed spec {0} meets {1}"
-                           .format(self, other))
+                message = "Notice: pretending installed spec {0} meets {1}".format(self, other)
+                if not message in Spec._already_warned:
+                    tty.info(message)
+                Spec._already_warned.add(message) 
+
                 return False
                 #raise spack.error.UnsatisfiableSpecError(
                 #    self, other, 'constrain a concrete spec'
