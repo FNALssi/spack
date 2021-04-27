@@ -93,6 +93,10 @@ class Xrootd(CMakePackage):
         return options
 
     def setup_build_environment(self, env):
+
+        if self.spec.satisfies('%gcc@8:'):
+            env.append_flags("CXXFLAGS", "-Wno-deprecated-copy")
+
         cxxstdflag = ''
         if self.spec.variants['cxxstd'].value == '98':
             cxxstdflag = self.compiler.cxx98_flag
