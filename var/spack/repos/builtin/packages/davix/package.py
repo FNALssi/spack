@@ -42,6 +42,8 @@ class Davix(CMakePackage):
 
         if self.spec.variants['thirdparty']:
             cmake_args.append('-DENABLE_THIRD_PARTY_COPY=ON')
+        else:
+            cmake_args.append('-DENABLE_THIRD_PARTY_COPY=OFF')
 
         if 'darwin' in self.spec.architecture:
             cmake_args.append('-DCMAKE_MACOSX_RPATH=ON')
