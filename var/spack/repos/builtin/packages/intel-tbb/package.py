@@ -209,7 +209,6 @@ class IntelTbb(Package):
                 "-DCMAKE_CONFIGURATION_TYPES=Release;Debug",
                 "-DCMAKE_CROSS_CONFIGS=Release;Debug",
                 "-DCMAKE_DEFAULT_CONFIGS=Release;Debug",
-                '-DCMAKE_CXX_STANDARD={0}'.format(spec.variants['cxxstd'].value),
                 '-DBUILD_SHARED_LIBS:BOOL=ON',
                 '-DCMAKE_INSTALL_LIBDIR=lib',
                 '-DCMAKE_INSTALL_PREFIX={0}'.format(self.prefix),
@@ -219,6 +218,10 @@ class IntelTbb(Package):
                 '_DTBB_TEST:BOOL=OFF',
                 '..'
             ]
+            if spec.variants['cxxstd'].value != 'default':
+                cmake_args.append('-DCMAKE_CXX_STANDARD{0}'.
+                                 format(spec.variants['cxxstd'].value))
+
             builddir =join_path(self.stage.source_path,'build')
             os.mkdir(builddir)
             with working_dir(builddir):
