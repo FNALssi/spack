@@ -1,0 +1,26 @@
+--- root-6.10.06/config/rootrc.in~	2017-09-19 01:26:16.000000000 -0500
++++ root-6.10.06/config/rootrc.in	2017-09-19 17:10:25.737874843 -0500
+@@ -667,12 +667,15 @@
+ #                               connection failure happens earlier then another
+ #                               connection attempt will only be made at the
+ #                               beginning of the next window.
++NetXNG.ConnectionWindow: 30
+ # NetXNG.ConnectionRetry      - Number of connection attempts that should be
+ #                               made (number of available connection windows)
+ #                               before declaring a permanent failure.
++NetXNG.ConnectionRetry: 4096
+ # NetXNG.RequestTimeout       - Default value for the time after which an error
+ #                               is declared if it was impossible to get a
+ #                               response to a request.
++NetXNG.RequestTimeout: 14400
+ # NetXNG.SubStreamsPerChannel - Number of streams per session.
+ # NetXNG.TimeoutResolution    - Resolution for the timeout events. Ie. timeout
+ #                               events will be processed only every
+@@ -683,6 +686,7 @@
+ # NetXNG.RunForkHandler       - Determines whether the fork handlers should be
+ #                               enabled, making the API fork safe.
+ # NetXNG.RedirectLimit        - Maximum number of allowed redirections.
++NetXNG.RedirectLimit: 64
+ # NetXNG.WorkerThreads        - Number of threads processing user callbacks.
+ # NetXNG.CPChunkSize          - Size of a single data chunk handled by xrdcopy.
+ # NetXNG.CPParallelChunks     - Maximum number of asynchronous requests being

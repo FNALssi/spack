@@ -219,7 +219,7 @@ class IntelTbb(Package):
                 '..'
             ]
             if spec.variants['cxxstd'].value != 'default':
-                cmake_args.append('-DCMAKE_CXX_STANDARD{0}'.
+                cmake_args.append('-DCMAKE_CXX_STANDARD={0}'.
                                  format(spec.variants['cxxstd'].value))
 
             builddir =join_path(self.stage.source_path,'build')
@@ -246,7 +246,7 @@ class IntelTbb(Package):
                 make_opts.append('stdver=c++{0}'.
                                  format(spec.variants['cxxstd'].value))
 
-            make(make_opts)
+            make(*make_opts)
                 
             # install headers to {prefix}/include
             install_tree('include', prefix.include)

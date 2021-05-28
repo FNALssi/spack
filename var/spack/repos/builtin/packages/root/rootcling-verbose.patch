@@ -1,0 +1,11 @@
+--- root-6.20.04/cmake/modules/RootMacros.cmake~	2020-04-01 03:28:13.000000000 -0500
++++ root-6.20.04/cmake/modules/RootMacros.cmake	2020-04-11 07:42:43.268769366 -0500
+@@ -625,7 +625,7 @@
+ 
+   #---call rootcint------------------------------------------
+   add_custom_command(OUTPUT ${dictionary}.cxx ${pcm_name} ${rootmap_name} ${cpp_module_file}
+-                     COMMAND ${command} -v2 -f  ${dictionary}.cxx ${newargs} ${excludepathsargs} ${rootmapargs}
++                     COMMAND ${command} -v4 -f  ${dictionary}.cxx ${newargs} ${excludepathsargs} ${rootmapargs}
+                                         ${ARG_OPTIONS}
+                                         ${definitions} "$<$<BOOL:${module_defs}>:-D$<JOIN:${module_defs},;-D>>"
+                                         ${includedirs} "$<$<BOOL:${module_incs}>:-I$<JOIN:${module_incs},;-I>>"
