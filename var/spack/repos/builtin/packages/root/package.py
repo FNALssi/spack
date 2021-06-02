@@ -74,11 +74,9 @@ class Root(CMakePackage):
     patch('root7-webgui.patch', level=1, when='@6.16.00')
 
     # fermi patches:
-    patch('fermi_root6.patch', when='@6.22.06')
     patch('fermi_PrintArrayTemplateArgs.patch', when='@6.22.06')
     patch('fermi_compression-rootrc.patch', when='@6.22.06')
     patch('fermi_xrootd-rootrc.patch', when='@6.22.06')
-    patch('fermi_mathmore_blas.patch', when='@6.22.06')
 
     # root's FindTBB doesn't find latest intel-tbb... 
     patch('tbb_2021.patch', when='^intel-tbb@2021.1.1')
