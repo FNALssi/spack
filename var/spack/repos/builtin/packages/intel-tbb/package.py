@@ -219,7 +219,7 @@ class IntelTbb(Package):
                 '..'
             ]
             if spec.variants['cxxstd'].value != 'default':
-                cmake_args.append('-DCMAKE_CXX_STANDARD{0}'.
+                cmake_args.append('-DCMAKE_CXX_STANDARD={0}'.
                                  format(spec.variants['cxxstd'].value))
 
             builddir =join_path(self.stage.source_path,'build')
