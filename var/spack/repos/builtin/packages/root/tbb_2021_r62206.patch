@@ -1,0 +1,54 @@
+--- spack-src/core/imt/inc/ROOT/TPoolManager.hxx.orig	2021-04-21 20:09:53.719593000 +0000
++++ spack-src/core/imt/inc/ROOT/TPoolManager.hxx	2021-04-21 20:10:20.659651000 +0000
+@@ -35,9 +35,6 @@
+ 
+ #include<memory>
+ 
+-namespace tbb {
+-   class task_scheduler_init;
+-}
+ 
+ namespace ROOT {
+    namespace Internal {
+@@ -64,7 +61,6 @@
+          TPoolManager(UInt_t nThreads = 0);
+          static UInt_t fgPoolSize;
+          bool mustDelete = true;
+-         tbb::task_scheduler_init *fSched = nullptr;
+       };
+       /// Get a shared pointer to the manager. Initialize the manager with nThreads if not active. If active,
+       /// the number of threads, even if specified otherwise, will remain the same.
+--- spack-src/cmake/modules/SearchInstalledSoftware.cmake.orig	2021-07-14 16:15:37.367633518 -0500
++++ spack-src/cmake/modules/SearchInstalledSoftware.cmake	2021-07-14 16:32:54.763044278 -0500
+@@ -1157,9 +1157,9 @@
+ if(imt AND NOT builtin_tbb)
+   message(STATUS "Looking for TBB")
+   if(fail-on-missing)
+-    find_package(TBB 2018 REQUIRED)
++    find_package(TBB 2018 CONFIG REQUIRED)
+   else()
+-    find_package(TBB 2018)
++    find_package(TBB CONFIG 2018)
+     if(NOT TBB_FOUND)
+       message(STATUS "TBB not found, enabling 'builtin_tbb' option")
+       set(builtin_tbb ON CACHE BOOL "Enabled because imt is enabled, but TBB was not found" FORCE)
+--- spack-src/core/imt/src/TPoolManager.cxx.orig	2021-07-14 16:15:37.406631653 -0500
++++ spack-src/core/imt/src/TPoolManager.cxx	2021-07-14 16:35:06.159765534 -0500
+@@ -68,12 +68,12 @@
+       TPoolManager::TPoolManager(UInt_t nThreads): fSched(new tbb::task_scheduler_init(tbb::task_scheduler_init::deferred))
+       {
+          //Is it there another instance of the tbb scheduler running?
+-         if (fSched->is_active()) {
+-            mustDelete = false;
+-         }
++         //if (fSched->is_active()) {
++         //   mustDelete = false;
++         //}
+ 
+-         nThreads = nThreads != 0 ? nThreads : NLogicalCores();
+-         fSched ->initialize(nThreads);
++         //nThreads = nThreads != 0 ? nThreads : NLogicalCores();
++         //fSched ->initialize(nThreads);
+          fgPoolSize = nThreads;
+       };
+ 

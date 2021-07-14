@@ -73,7 +73,8 @@ class Root(CMakePackage):
     patch('root7-webgui.patch', level=1, when='@6.16.00')
 
     # root's FindTBB doesn't find latest intel-tbb... 
-    patch('tbb_2021.patch', when='^intel-tbb@2021.0:')
+    patch('tbb_2021.patch', when='!@:6.25.99 ^intel-tbb@2021.0:')
+    patch('tbb_2021_r62206.patch', when='!@6.26.0: ^intel-tbb@2021.0:')
 
     if sys.platform == 'darwin':
         # Resolve non-standard use of uint, _cf_
