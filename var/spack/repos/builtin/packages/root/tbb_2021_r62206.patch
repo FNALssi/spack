@@ -52,3 +52,72 @@
           fgPoolSize = nThreads;
        };
  
+--- spack-src/core/imt/src/TPoolManager.cxx.orig	2021-07-15 15:03:55.958350273 -0500
++++ spack-src/core/imt/src/TPoolManager.cxx	2021-07-15 15:07:22.014497341 -0500
+@@ -7,7 +7,7 @@
+ #include <unistd.h>
+ #include <sys/stat.h>
+ #endif
+-#include "tbb/task_scheduler_init.h"
++#include <thread>
+ 
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+@@ -52,7 +52,7 @@
+             }
+          }
+       #endif
+-         return tbb::task_scheduler_init::default_num_threads();
++         return std::thread::hardware_concurrency();
+       }
+ 
+       //Returns the weak_ptr reflecting a shared_ptr to the only instance of the Pool Manager.
+@@ -65,7 +65,7 @@
+ 
+       UInt_t TPoolManager::fgPoolSize = 0;
+ 
+-      TPoolManager::TPoolManager(UInt_t nThreads): fSched(new tbb::task_scheduler_init(tbb::task_scheduler_init::deferred))
++      TPoolManager::TPoolManager(UInt_t nThreads) 
+       {
+          //Is it there another instance of the tbb scheduler running?
+          //if (fSched->is_active()) {
+@@ -82,7 +82,7 @@
+          //Only terminate the tbb scheduler if there was not another instance already
+          // running when the constructor was called.
+          if (mustDelete) {
+-            fSched->terminate();
++            //fSched->terminate();
+             fgPoolSize = 0;
+          }
+       }
+--- spack-src/core/imt/CMakeLists.txt.orig	2021-07-15 14:48:29.023671567 -0500
++++ spack-src/core/imt/CMakeLists.txt	2021-07-15 15:01:52.733242434 -0500
+@@ -12,7 +12,7 @@
+     src/base.cxx
+     src/TTaskGroup.cxx
+   BUILTINS
+-    TBB
++    TBB::tbb
+ )
+ 
+ target_include_directories(Clib PRIVATE
+@@ -36,7 +36,7 @@
+       Core
+       Thread
+     BUILTINS
+-      TBB
++      TBB::tbb
+   )
+ 
+   # G__Imt.cxx is automatically added by ROOT_GENERATE_DICTIONARY()
+@@ -46,8 +46,8 @@
+     src/TThreadExecutor.cxx
+   )
+ 
+-  target_include_directories(Imt PRIVATE ${TBB_INCLUDE_DIRS})
+-  target_link_libraries(Imt PRIVATE ${TBB_LIBRARIES})
++  target_include_directories(Imt PRIVATE TBB::tbb)
++  target_link_libraries(Imt PRIVATE TBB::tbb)
+   set_target_properties(Imt PROPERTIES COMPILE_FLAGS "${TBB_CXXFLAGS}")
+ 
+   ROOT_ADD_TEST_SUBDIRECTORY(test)
