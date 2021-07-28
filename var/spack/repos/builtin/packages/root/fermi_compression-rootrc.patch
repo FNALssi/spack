@@ -1,0 +1,12 @@
+--- root-6.14.04/config/rootrc.in~	2018-09-04 15:53:00.000000000 -0500
++++ root-6.14.04/config/rootrc.in	2018-09-04 16:27:00.000000000 -0500
+@@ -39,7 +39,7 @@
+ # See the documentation of ECompressionAlgorithm.
+ # A simple "0" (the default value) uses the default compression algorithm as
+ # specified by the initialization of R__ZipMode.
+-Root.CompressionAlgorithm: 0
++Root.CompressionAlgorithm: 1
+ 
+ # Show where item is found in the specified path.
+ Root.ShowPath:           false
+

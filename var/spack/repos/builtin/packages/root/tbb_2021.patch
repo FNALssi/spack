@@ -1,14 +1,3 @@
---- spack-src/cmake/modules/SearchInstalledSoftware.cmake.orig	2021-04-20 20:30:27.131998000 +0000
-+++ spack-src/cmake/modules/SearchInstalledSoftware.cmake	2021-04-20 20:30:17.483998000 +0000
-@@ -1006,7 +1006,7 @@
- if(imt)
-   if(NOT builtin_tbb)
-     message(STATUS "Looking for TBB")
--    find_package(TBB)
-+    find_package(TBB CONFIG)
-     if(TBB_FOUND)
-       set(tbb_min_version 2018)
-       if(${TBB_VERSION} VERSION_LESS ${tbb_min_version})
 --- spack-src/core/imt/inc/ROOT/TPoolManager.hxx.orig	2021-04-21 20:09:53.719593000 +0000
 +++ spack-src/core/imt/inc/ROOT/TPoolManager.hxx	2021-04-21 20:10:20.659651000 +0000
 @@ -35,9 +35,6 @@
@@ -29,31 +18,46 @@
        };
        /// Get a shared pointer to the manager. Initialize the manager with nThreads if not active. If active,
        /// the number of threads, even if specified otherwise, will remain the same.
---- spack-src/core/imt/src/TPoolManager.cxx.orig	2021-04-21 19:57:44.400587000 +0000
-+++ spack-src/core/imt/src/TPoolManager.cxx	2021-04-21 20:12:40.328749000 +0000
-@@ -2,7 +2,6 @@
- #include "TError.h"
- #include "TROOT.h"
- #include <algorithm>
+--- spack-src/cmake/modules/SearchInstalledSoftware.cmake.orig	2021-06-01 19:04:45.280770331 -0500
++++ spack-src/cmake/modules/SearchInstalledSoftware.cmake	2021-06-01 20:25:55.882668510 -0500
+@@ -1157,9 +1157,9 @@
+ if(imt AND NOT builtin_tbb)
+   message(STATUS "Looking for TBB")
+   if(fail-on-missing)
+-    find_package(TBB 2018 REQUIRED)
++    find_package(TBB CONFIG)
+   else()
+-    find_package(TBB 2018)
++    find_package(TBB)
+     if(NOT TBB_FOUND)
+       message(STATUS "TBB not found, enabling 'builtin_tbb' option")
+       set(builtin_tbb ON CACHE BOOL "Enabled because imt is enabled, but TBB was not found" FORCE)
+--- spack-src/core/imt/src/TPoolManager.cxx.orig	2021-06-01 19:04:45.302769289 -0500
++++ spack-src/core/imt/src/TPoolManager.cxx	2021-06-01 20:28:05.522505661 -0500
+@@ -7,7 +7,7 @@
+ #include <unistd.h>
+ #include <sys/stat.h>
+ #endif
 -#include "tbb/task_scheduler_init.h"
++#include <thread>
  
- namespace ROOT {
  
-@@ -17,26 +16,17 @@
+ ////////////////////////////////////////////////////////////////////////////////
+@@ -65,26 +64,15 @@
  
        UInt_t TPoolManager::fgPoolSize = 0;
  
 -      TPoolManager::TPoolManager(UInt_t nThreads): fSched(new tbb::task_scheduler_init(tbb::task_scheduler_init::deferred))
 +      TPoolManager::TPoolManager(UInt_t nThreads)
        {
-          //Is it there another instance of the tbb scheduler running?
+-         //Is it there another instance of the tbb scheduler running?
 -         if (fSched->is_active()) {
 -            mustDelete = false;
 -         }
- 
--         nThreads = nThreads != 0 ? nThreads : tbb::task_scheduler_init::default_num_threads();
+-
+-         nThreads = nThreads != 0 ? nThreads : NLogicalCores();
 -         fSched ->initialize(nThreads);
-+         nThreads = nThreads != 0 ? nThreads : 1;
++         nThreads = nThreads != 0 ? nThreads : std::thread::hardware_concurrency();
           fgPoolSize = nThreads;
        };
  
@@ -68,32 +72,35 @@
        }
  
        //Number of threads the PoolManager has been initialized with.
---- spack-src/core/imt/src/TThreadExecutor.cxx.orig	2021-04-21 20:13:20.704960000 +0000
-+++ spack-src/core/imt/src/TThreadExecutor.cxx	2021-04-21 20:14:16.839187000 +0000
-@@ -134,7 +134,7 @@
-    /// Class constructor.
-    /// If the scheduler is active, gets a pointer to it.
-    /// If not, initializes the pool of threads with the number of logical threads supported by the hardware.
--   TThreadExecutor::TThreadExecutor(): TThreadExecutor::TThreadExecutor(tbb::task_scheduler_init::default_num_threads()) {}
-+   TThreadExecutor::TThreadExecutor(): TThreadExecutor::TThreadExecutor(0) {}
-    //////////////////////////////////////////////////////////////////////////
-    /// Class constructor.
-    /// nThreads is the number of threads that will be spawned. If the scheduler is active (ImplicitMT enabled, another TThreadExecutor instance),
---- spack-src/core/imt/CMakeLists.txt.orig	2021-04-21 19:32:53.215733000 +0000
-+++ spack-src/core/imt/CMakeLists.txt	2021-04-21 19:50:31.881057000 +0000
-@@ -29,12 +29,12 @@
-     TBB
- )
+--- spack-src/core/imt/CMakeLists.txt.orig	2021-06-01 19:04:45.309768957 -0500
++++ spack-src/core/imt/CMakeLists.txt	2021-06-01 20:31:25.202010389 -0500
+@@ -47,7 +47,9 @@
+   )
  
--target_link_libraries(Imt PRIVATE Thread INTERFACE Core)
- 
- if(imt)
--  target_include_directories(Imt PRIVATE ${TBB_INCLUDE_DIRS})
+   target_include_directories(Imt PRIVATE ${TBB_INCLUDE_DIRS})
 -  target_link_libraries(Imt PRIVATE ${TBB_LIBRARIES})
- 
 +  target_link_libraries(Imt PRIVATE Thread INTERFACE Core)
 +  target_link_libraries(Imt PRIVATE TBB::tbb)
 +  target_include_directories(Imt PRIVATE TBB::tbb)
-   # G__Imt.cxx is automatically added by ROOT_LINKER_LIBRARY.
-   target_sources(Imt PRIVATE
-     src/TImplicitMT.cxx
+   set_target_properties(Imt PROPERTIES COMPILE_FLAGS "${TBB_CXXFLAGS}")
+ 
+   ROOT_ADD_TEST_SUBDIRECTORY(test)
+--- spack-src/core/imt/src/TPoolManager.cxx.orig	2021-06-02 10:28:58.157772687 -0500
++++ spack-src/core/imt/src/TPoolManager.cxx	2021-06-02 10:40:47.183096101 -0500
+@@ -3,6 +3,7 @@
+ #include "TROOT.h"
+ #include <algorithm>
+ #include <fstream>
++#include <thread>
+ #ifdef R__LINUX
+ #include <unistd.h>
+ #include <sys/stat.h>
+@@ -51,7 +52,7 @@
+             }
+          }
+       #endif
+-         return tbb::task_scheduler_init::default_num_threads();
++         return std::thread::hardware_concurrency();
+       }
+ 
+       //Returns the weak_ptr reflecting a shared_ptr to the only instance of the Pool Manager.

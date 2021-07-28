@@ -3031,15 +3031,14 @@ class Spec(object):
                 # earlier version of a recipe that you have specified
                 # by hash that doesn't mention a variant in a newer
                 # recipe...
-                message = "Notice: pretending installed spec {0} meets {1}".format(self, other)
-                if not message in Spec._already_warned:
-                    tty.info(message)
-                Spec._already_warned.add(message) 
-
-                return False
-                #raise spack.error.UnsatisfiableSpecError(
-                #    self, other, 'constrain a concrete spec'
-                #)
+                #message = "Notice: pretending installed spec {0} meets {1}".format(self, other)
+                #if not message in Spec._already_warned:
+                #    tty.info(message)
+                #Spec._already_warned.add(message) 
+                #return False
+                raise spack.error.UnsatisfiableSpecError(
+                    self, other, 'constrain a concrete spec'
+                )
 
         other = self._autospec(other)
 

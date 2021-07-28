@@ -21,6 +21,7 @@ class Root(CMakePackage):
 
     # ###################### Versions ##########################
 
+
     # Master branch
     version('master', git="https://github.com/root-project/root.git",
             branch='master')
@@ -71,6 +72,11 @@ class Root(CMakePackage):
     # 6.16.00 fails to handle particular build option combinations, _cf_
     # https://github.com/root-project/ROOT/commit/e0ae0483985d90a71a6cabd10d3622dfd1c15611.
     patch('root7-webgui.patch', level=1, when='@6.16.00')
+
+    # fermi patches:
+    patch('fermi_PrintArrayTemplateArgs.patch', when='@6.22.06')
+    patch('fermi_compression-rootrc.patch', when='@6.22.06')
+    patch('fermi_xrootd-rootrc.patch', when='@6.22.06')
 
     # root's FindTBB doesn't find latest intel-tbb... 
     patch('tbb_2021.patch', when='@:6.21.99 ^intel-tbb@2021.0:')

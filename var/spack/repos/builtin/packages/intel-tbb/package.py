@@ -246,7 +246,7 @@ class IntelTbb(Package):
                 make_opts.append('stdver=c++{0}'.
                                  format(spec.variants['cxxstd'].value))
 
-            make(make_opts)
+            make(*make_opts)
                 
             # install headers to {prefix}/include
             install_tree('include', prefix.include)
