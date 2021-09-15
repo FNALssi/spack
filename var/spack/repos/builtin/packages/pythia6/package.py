@@ -9,7 +9,6 @@ import os
 from six import iteritems
 from six.moves.urllib.parse import urlparse
 
-
 def _is_integral(x):
     """Accepts only integral values."""
     try:
@@ -17,7 +16,6 @@ def _is_integral(x):
             (not isinstance(x, bool))
     except ValueError:
         return False
-
 
 class Pythia6(CMakePackage):
     """PYTHIA is a program for the generation of high-energy physics events,
@@ -31,11 +29,13 @@ class Pythia6(CMakePackage):
     """
 
     homepage = 'https://pythiasix.hepforge.org/'
-    url = 'http://www.hepforge.org/archive/pythiasix/pythia-6.4.28.tgz'
+    #url = 'http://www.hepforge.org/archive/pythiasix/pythia-6.4.28.tgz'
+    url = 'https://pythia.org/download/pythia6/pythia6428-split.tgz'
 
     tags = ['hep']
 
     version('6.4.28',
+            url = 'https://pythia.org/download/pythia6/pythia6428-split.tgz',
             sha256='01cbff47e99365b5e46f6d62c1735d3cae1932c4710604850d59f538cb758020')
 
     # Root's TPythia6 interface requires extra sources to be built into
@@ -95,17 +95,19 @@ class Pythia6(CMakePackage):
            'main77.f':
            '0679852c4f35719531ad38dc1dbb374b884181eb5e483c36d8867ccb449177a4',
            'main78.f':
-           '5babc59fe6a0bd57d97ec398cf01745bc9b72ce6ce0711e934d53c7821e21912',
+           '09ed4b065d2c7ad439d4083d048a3a8f469963c1bb191811857c88f56ef07a5d',
+           #'5babc59fe6a0bd57d97ec398cf01745bc9b72ce6ce0711e934d53c7821e21912',
            'main79.f':
            '27ca84d6d0877f3605cbc1b865c3e1f571e7d2c9301094a4122e726a903dbead',
-           'main81.f':
-           'b02fecd1cd0f9ba16eaae53e9da0ba602569fdf0e46856cccdfb4c5b7ba33e8b',
-           'ttbar.lhe':
-           'db772b69ab4e0300d973b57414523ac8e7fa8535eac49ee52a6b69b1c131983d'}
+           #'main81.f':
+           #'b02fecd1cd0f9ba16eaae53e9da0ba602569fdf0e46856cccdfb4c5b7ba33e8b',
+           #'ttbar.lhe':
+           #'db772b69ab4e0300d973b57414523ac8e7fa8535eac49ee52a6b69b1c131983d'
+           }
 
     for example, checksum in iteritems(examples):
         resource(name=example,
-                 url='http://pythiasix.hepforge.org/examples/{0}'.
+                 url='https://pythia.org/download/pythia6/{0}'.
                  format(example),
                  sha256=checksum,
                  expand=False,
@@ -114,9 +116,10 @@ class Pythia6(CMakePackage):
 
     # Docs.
     docs = {
-        'http://www.hepforge.org/archive/pythiasix/update_notes-6.4.28.txt': 'a229be4ba9a4eb65a9d53600a5f388b620038d56694c6cb4671c2be224b67751',
-        'http://home.thep.lu.se/~torbjorn/pythia6/lutp0613man2.pdf': '03d637310ea80f0d7aea761492bd38452c602890d8cf913a1ec9edacd79fa43d',
-        'https://pythiasix.hepforge.org/pythia6-announcement.txt': '2a52def41f0c93e32e0db58dbcf072b987ebfbd32e42ccfc1f9382fcf65f1271'
+        #'http://www.hepforge.org/archive/pythiasix/update_notes-6.4.28.txt': 'a229be4ba9a4eb65a9d53600a5f388b620038d56694c6cb4671c2be224b67751',
+        #'http://home.thep.lu.se/~torbjorn/pythia6/lutp0613man2.pdf': '03d637310ea80f0d7aea761492bd38452c602890d8cf913a1ec9edacd79fa43d',
+        #'https://pythiasix.hepforge.org/pythia6-announcement.txt': '2a52def41f0c93e32e0db58dbcf072b987ebfbd32e42ccfc1f9382fcf65f1271',
+        'https://pythia.org/download/pythia6/pythia6428.update': 'a229be4ba9a4eb65a9d53600a5f388b620038d56694c6cb4671c2be224b67751',
     }
 
     for docurl, checksum in iteritems(docs):
@@ -145,6 +148,7 @@ class Pythia6(CMakePackage):
         filter_file(r'^(\s+PARAMETER\s*\(\s*NMXHEP\s*=\s*)\d+',
                     r'\1{0}'.format(self.spec.variants['nmxhep'].value),
                     'pyhepc.f')
+        filter_file(r'pythia_test\( *main81.*','', 'CMakeLists.txt')
 
     def setup_build_environment(self, env):
         if self.spec.satisfies('%gcc@10:'):
