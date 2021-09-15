@@ -57,6 +57,9 @@ class Llvm(CMakePackage, CudaPackage):
     version('3.5.1', sha256='5d739684170d5b2b304e4fb521532d5c8281492f71e1a8568187bfa38eb5909d')
     # fmt: on
 
+    # marking non parallel here so we don't run out of memory
+    parallel = False
+
     # NOTE: The debug version of LLVM is an order of magnitude larger than
     # the release version, and may take up 20-30 GB of space. If you want
     # to save space, build with `build_type=Release`.
