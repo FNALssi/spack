@@ -17,6 +17,7 @@ class PyTensorflow(Package, CudaPackage):
     maintainers = ['adamjstewart', 'aweits']
     import_modules = ['tensorflow']
 
+
     version('2.4.1',  sha256='f681331f8fc0800883761c7709d13cda11942d4ad5ff9f44ad855e9dc78387e0')
     version('2.4.0',  sha256='26c833b7e1873936379e810a39d14700281125257ddda8cd822c89111db6f6ae')
     version('2.3.2',  sha256='21a703d2e68cd0677f6f9ce329198c24fd8203125599d791af9f1de61aadf31f')
@@ -99,11 +100,17 @@ class PyTensorflow(Package, CudaPackage):
     variant('numa', default=False, description='Build with NUMA support')
     variant('dynamic_kernels', default=False, description='Build kernels into separate shared objects')
 
+    variant('cxxstd',
+            default='17',
+            values=('14', '17'),
+            multi=False,
+            description='Use the specified C++ standard when building.')
+
     extends('python')
     depends_on('python@3:', type=('build', 'run'), when='@2.1:')
     # python 3.8 support in tensorflow 2.2
     # see tensorflow issue #33374
-    depends_on('python@:3.7', type=('build', 'run'), when='@:2.2')
+    depends_on('python@:3.7', type=('build', 'run'), when='@:2.1.99')
 
     # TODO: Older versions of TensorFlow don't list the viable version range,
     # just the minimum version of bazel that will work. The latest version of
@@ -112,7 +119,7 @@ class PyTensorflow(Package, CudaPackage):
 
     # See _TF_MIN_BAZEL_VERSION and _TF_MAX_BAZEL_VERSION in configure.py
     depends_on('bazel@3.1.0:3.99.0',  type='build', when='@2.3:')
-    depends_on('bazel@2.0.0',         type='build', when='@2.2.0:2.2.999')
+    depends_on('bazel@2.0.0',  type='build', when='@2.2.0:2.2.999')
     depends_on('bazel@0.27.1:0.29.1', type='build', when='@2.1.0:2.1.999')
     depends_on('bazel@0.24.1:0.26.1', type='build', when='@1.15:2.0')
     # See call to check_bazel_version in configure.py
@@ -506,6 +513,8 @@ class PyTensorflow(Package, CudaPackage):
         else:
             env.set('TF_NEED_MPI', '0')
             env.unset('MPI_HOME')
+
+        env.append_flags('BAZEL_CXXOPTS', '--std=c++%s' % spec.variants['cxxstd'].value )
 
         # Please specify optimization flags to use during compilation when
         # bazel option '--config=opt' is specified

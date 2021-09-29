@@ -98,11 +98,11 @@ class Mesa(MesonPackage):
         spec = self.spec
         args = [
             '-Dvulkan-drivers=',
-            '-Dgallium-vdpau=disabled',
-            '-Dgallium-xvmc=disabled',
+            '-Dgallium-vdpau=false',
+            '-Dgallium-xvmc=false',
             '-Dgallium-omx=disabled',
-            '-Dgallium-va=disabled',
-            '-Dgallium-xa=disabled',
+            '-Dgallium-va=false',
+            '-Dgallium-xa=false',
             '-Dgallium-nine=false',
             '-Dgallium-opencl=disabled',
             '-Dbuild-tests=false',
@@ -114,7 +114,7 @@ class Mesa(MesonPackage):
         opt_enable = lambda c, o: '-D%s=%sabled' % (o, 'en' if c else 'dis')
         opt_bool = lambda c, o: '-D%s=%s' % (o, str(c).lower())
         if spec.target.family == 'arm' or spec.target.family == 'aarch64':
-            args.append('-Dlibunwind=disabled')
+            args.append('-Dlibunwind=false')
 
         num_frontends = 0
         if '+osmesa' in spec:
@@ -131,28 +131,28 @@ class Mesa(MesonPackage):
                 args.append('-Dglx=gallium-xlib')
             args_platforms.append('x11')
         else:
-            args.append('-Dglx=disabled')
+            args.append('-Dglx=false')
 
         if '+egl' in spec:
             num_frontends += 1
-            args.extend(['-Degl=enabled', '-Dgbm=enabled', '-Ddri3=enabled'])
+            args.extend(['-Degl=true', '-Dgbm=true', '-Ddri3=true'])
             args_platforms.append('surfaceless')
         else:
             args.extend(
-                ['-Degl=disabled', '-Dgbm=disabled', '-Ddri3=disabled'])
+                ['-Degl=false', '-Dgbm=false', '-Ddri3=false'])
 
         args.append(opt_bool('+opengl' in spec, 'opengl'))
-        args.append(opt_enable('+opengles' in spec, 'gles1'))
-        args.append(opt_enable('+opengles' in spec, 'gles2'))
+        args.append(opt_bool('+opengles' in spec, 'gles1'))
+        args.append(opt_bool('+opengles' in spec, 'gles2'))
 
-        args.append(opt_enable(num_frontends > 1, 'shared-glapi'))
+        args.append(opt_bool(num_frontends > 1, 'shared-glapi'))
 
         if '+llvm' in spec:
-            args.append('-Dllvm=enabled')
-            args.append(opt_enable(
+            args.append('-Dllvm=true')
+            args.append(opt_bool(
                 '+link_dylib' in spec['llvm'], 'shared-llvm'))
         else:
-            args.append('-Dllvm=disabled')
+            args.append('-Dllvm=false')
 
         args_swr_arches = []
         if 'swr=auto' in spec:

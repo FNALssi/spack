@@ -21,6 +21,7 @@ class Root(CMakePackage):
 
     # ###################### Versions ##########################
 
+
     # Master branch
     version('master', git="https://github.com/root-project/root.git",
             branch='master')
@@ -71,6 +72,15 @@ class Root(CMakePackage):
     # 6.16.00 fails to handle particular build option combinations, _cf_
     # https://github.com/root-project/ROOT/commit/e0ae0483985d90a71a6cabd10d3622dfd1c15611.
     patch('root7-webgui.patch', level=1, when='@6.16.00')
+
+    # fermi patches:
+    patch('fermi_PrintArrayTemplateArgs.patch', when='@6.22.06')
+    patch('fermi_compression-rootrc.patch', when='@6.22.06')
+    patch('fermi_xrootd-rootrc.patch', when='@6.22.06')
+
+    # root's FindTBB doesn't find latest intel-tbb... 
+    patch('tbb_2021.patch', when='@:6.21.99 ^intel-tbb@2021.0:')
+    patch('tbb_2021_r62206.patch', when='@6.22.0: ^intel-tbb@2021.0:')
 
     if sys.platform == 'darwin':
         # Resolve non-standard use of uint, _cf_
@@ -508,3 +518,9 @@ class Root(CMakePackage):
         env.prepend_path('PATH', self.prefix.bin)
         if "+rpath" not in self.spec:
             env.prepend_path('LD_LIBRARY_PATH', self.prefix.lib)
+
+    @run_after('install')
+    def rename_README(self):
+        import os
+        os.rename( join_path(self.spec.prefix, "README"),
+                   join_path(self.spec.prefix, "README_%s"%self.spec.name))

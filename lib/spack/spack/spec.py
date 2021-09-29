@@ -1022,6 +1022,8 @@ class Spec(object):
     #: Cache for spec's prefix, computed lazily in the corresponding property
     _prefix = None
 
+    _already_warned = set()
+
     def __init__(self, spec_like=None,
                  normal=False, concrete=False, external_path=None,
                  external_modules=None, full_hash=None):

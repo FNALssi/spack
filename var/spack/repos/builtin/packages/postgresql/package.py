@@ -14,6 +14,8 @@ class Postgresql(AutotoolsPackage):
 
     homepage = "http://www.postgresql.org/"
     url      = "http://ftp.postgresql.org/pub/source/v9.3.4/postgresql-9.3.4.tar.bz2"
+
+    version('12.3', sha256='94ed64a6179048190695c86ec707cc25d016056ce10fc9d229267d9a8f1dcf41')
     list_url = "http://ftp.postgresql.org/pub/source"
     list_depth = 1
 

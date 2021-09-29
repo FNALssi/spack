@@ -1519,7 +1519,9 @@ class PackageBase(six.with_metaclass(PackageMeta, PackageViewMixin, object)):
             # probably only happens for source repositories which are
             # referenced by branch name rather than tag or commit ID.
             message = 'Missing a source id for {s.name}@{s.version}'
-            tty.warn(message.format(s=self))
+            # Most annoying warning ever, most packages get built from
+            # tarfiles, and are not checked out...
+            # tty.warn(message.format(s=self))
             hash_content.append(''.encode('utf-8'))
         else:
             hash_content.append(source_id.encode('utf-8'))

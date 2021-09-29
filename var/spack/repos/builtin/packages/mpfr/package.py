@@ -32,7 +32,7 @@ class Mpfr(AutotoolsPackage, GNUMirrorPackage):
     depends_on('m4', type='build')
     depends_on('autoconf-archive', when='@4.0.2:', type='build')
 
-    force_autoreconf = True
+    #force_autoreconf = True
 
     # Check the Bugs section of old release pages for patches.
     # https://www.mpfr.org/mpfr-X.Y.Z/#bugs

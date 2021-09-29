@@ -1,0 +1,27 @@
+--- root-6.10.08/interpreter/llvm/src/tools/clang/lib/AST/TemplateBase.cpp
++++ root-6.10.08/interpreter/llvm/src/tools/clang/lib/AST/TemplateBase.cpp
+@@ -392,9 +392,22 @@
+     
+   case Declaration: {
+     NamedDecl *ND = cast<NamedDecl>(getAsDecl());
+-    Out << '&';
++    bool needsRef = true;
++    if (auto VD = dyn_cast<ValueDecl>(ND)) {
++      const clang::Type *ArgTy = VD->getType()->getUnqualifiedDesugaredType();
++      const clang::Type *ParmTy
++        = getParamTypeForDecl()->getUnqualifiedDesugaredType();
++      clang::ASTContext& Ctx = ND->getASTContext();
++      needsRef = !Ctx.hasSameType(ArgTy, ParmTy);
++      if (needsRef && (ArgTy->isArrayType() || ArgTy->isFunctionType())) {
++        const clang::Type *decayedArgTy
++          = Ctx.getDecayedType(clang::QualType(ArgTy, 0)).getTypePtr();
++        needsRef = !Ctx.hasSameType(decayedArgTy, ParmTy);
++      }
++    }
++    if (needsRef)
++      Out << '&';
+     if (ND->getDeclName()) {
+-      // FIXME: distinguish between pointer and reference args?
+       ND->printQualifiedName(Out);
+     } else {
+       Out << "(anonymous)";

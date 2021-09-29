@@ -8,6 +8,9 @@ import glob
 import inspect
 import platform
 import sys
+import os
+from spack.util.environment import filter_system_paths
+
 
 
 class IntelTbb(Package):
@@ -23,6 +26,7 @@ class IntelTbb(Package):
     # Note: when adding new versions, please check and update the
     # patches, filters and url_for_version() below as needed.
 
+    version('2021.1.1', sha256='b182c73caaaabc44ddc5ad13113aca7e453af73c1690e4061f71dfe4935d74e8')
     version('2020.3', sha256='ebc4f6aa47972daed1f7bf71d100ae5bf6931c2e3144cf299c8cc7d041dca2f3')
     version('2020.2', sha256='4804320e1e6cbe3a5421997b52199e3c1a3829b2ecb6489641da4b8e32faf500')
     version('2020.1', sha256='7c96a150ed22bc3c6628bc3fef9ed475c00887b26d37bca61518d76a56510971')
@@ -95,7 +99,9 @@ class IntelTbb(Package):
 
     # Build and install CMake config files if we're new enough.
     # CMake support started in 2017.7.
-    depends_on('cmake@3.0.0:', type='build', when='@2017.7:')
+
+    depends_on('cmake@3.0.0:', type='build')
+    depends_on('ninja', type='build')
 
     # Patch for pedantic warnings (#10836).  This was fixed in the TBB
     # source tree in 2019.6.
@@ -151,9 +157,14 @@ class IntelTbb(Package):
                     else:
                         of.write(lin)
 
+    def setup_build_environment(self, env):
+        if self.spec.satisfies('%gcc@8:'):
+            env.append_flags("CXXFLAGS", "-Wno-deprecated-copy")
+
     def install(self, spec, prefix):
         # Deactivate use of RTM with GCC when on an OS with a very old
         # assembler.
+            
         if (spec.satisfies('%gcc@4.8.0: os=rhel6')
                 or spec.satisfies('%gcc@4.8.0: os=centos6')
                 or spec.satisfies('%gcc@4.8.0: os=scientific6')):
@@ -182,49 +193,92 @@ class IntelTbb(Package):
         mkdirp(prefix)
         mkdirp(prefix.lib)
 
-        make_opts = []
-
-        # Static builds of TBB are enabled by including 'big_iron.inc' file
-        # See caveats in 'big_iron.inc' for limits on using TBB statically
-        # Lore states this file must be handed to make before other options
-        if '+shared' not in self.spec:
-            make_opts.append("extra_inc=big_iron.inc")
-
-        if spec.variants['cxxstd'].value != 'default':
-            make_opts.append('stdver=c++{0}'.
-                             format(spec.variants['cxxstd'].value))
-
         #
-        # tbb does not have a configure script or make install target
-        # we simply call make, and try to put the pieces together
+        # if a Makefile didn't ship with the package,
+        # we do a cmake Release build and a cmake Debug build
+        # to get the result the older versions did in their Makefile
         #
-        make_opts.append("compiler={0}".format(tbb_compiler))
-        make(*make_opts)
+        if ( os.path.exists(
+               join_path(self.stage.source_path,'CMakeLists.txt')) and not 
+             os.path.exists(
+               join_path(self.stage.source_path,'Makefile')) ):
 
-        # install headers to {prefix}/include
-        install_tree('include', prefix.include)
-
-        # install libs to {prefix}/lib
-        tbb_lib_names = ["libtbb",
-                         "libtbbmalloc",
-                         "libtbbmalloc_proxy"]
-
-        for lib_name in tbb_lib_names:
-            # install release libs
-            install(join_path("build", "*release", lib_name + ".*"),
-                    prefix.lib)
-            # install debug libs if they exist
-            install(join_path("build", "*debug", lib_name + "_debug.*"),
-                    prefix.lib)
-
-        if spec.satisfies('@2017.8,2018.1:', strict=True):
             # Generate and install the CMake Config file.
-            cmake_args = ('-DTBB_ROOT={0}'.format(prefix),
-                          '-DTBB_OS={0}'.format(platform.system()),
-                          '-P',
-                          'tbb_config_generator.cmake')
-            with working_dir(join_path(self.stage.source_path, 'cmake')):
+            cmake_args = [
+                "-GNinja Multi-Config",
+                "-DCMAKE_CONFIGURATION_TYPES=Release;Debug",
+                "-DCMAKE_CROSS_CONFIGS=Release;Debug",
+                "-DCMAKE_DEFAULT_CONFIGS=Release;Debug",
+                '-DBUILD_SHARED_LIBS:BOOL=ON',
+                '-DCMAKE_INSTALL_LIBDIR=lib',
+                '-DCMAKE_INSTALL_PREFIX={0}'.format(self.prefix),
+                '-DTBB_EXAMPLES:BOOL=OFF',
+                '-DTBB_FIND_PACKAGE:BOOL=OFF',
+                '-DTBB_STRICT:BOOL=ON',
+                '_DTBB_TEST:BOOL=OFF',
+                '..'
+            ]
+            if spec.variants['cxxstd'].value != 'default':
+                cmake_args.append('-DCMAKE_CXX_STANDARD={0}'.
+                                 format(spec.variants['cxxstd'].value))
+
+            builddir =join_path(self.stage.source_path,'build')
+            os.mkdir(builddir)
+            with working_dir(builddir):
                 inspect.getmodule(self).cmake(*cmake_args)
+                inspect.getmodule(self).cmake('--build', '.')
+                inspect.getmodule(self).cmake('--install','.' ,'--config', 'Debug')
+                inspect.getmodule(self).cmake('--install','.','--config', 'Release')
+        else:
+            #
+            # tbb does not have a configure script or make install target
+            # we simply call make, and try to put the pieces together
+            #
+            make_opts = []
+
+            # Static builds of TBB are enabled by including 'big_iron.inc' file
+            # See caveats in 'big_iron.inc' for limits on using TBB statically
+            # Lore states this file must be handed to make before other options
+            if '+shared' not in self.spec:
+                make_opts.append("extra_inc=big_iron.inc")
+
+            if spec.variants['cxxstd'].value != 'default':
+                make_opts.append('stdver=c++{0}'.
+                                 format(spec.variants['cxxstd'].value))
+
+            make(*make_opts)
+                
+            # install headers to {prefix}/include
+            install_tree('include', prefix.include)
+
+            # install libs to {prefix}/lib
+            tbb_lib_names = ["libtbb",
+                             "libtbbmalloc",
+                             "libtbbmalloc_proxy"]
+
+            for lib_name in tbb_lib_names:
+                # install release libs
+                install(join_path("build", "*release", lib_name + ".*"),
+                        prefix.lib)
+                # install debug libs if they exist
+                install(join_path("build", "*debug", lib_name + "_debug.*"),
+                        prefix.lib)
+
+            if spec.satisfies('@2017.7:'):
+                if spec.satisfies('@2021.0:'):
+                     cfg = 'config_generation.cmake'
+                else:
+                     cfg = 'tbb_config_generator.cmake'
+
+                # Generate and install the CMake Config file.
+                cmake_args = ('-DTBB_ROOT={0}'.format(prefix),
+                              '-DTBB_OS={0}'.format(platform.system()),
+                              '-P',
+                              cfg)
+                with working_dir(join_path(self.stage.source_path, 'cmake')):
+                    inspect.getmodule(self).cmake(*cmake_args)
+
+
 
     @run_after('install')
     def darwin_fix(self):

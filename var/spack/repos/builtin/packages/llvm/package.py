@@ -20,6 +20,10 @@ class Llvm(CMakePackage, CudaPackage):
 
     homepage = "http://llvm.org/"
     url = "https://github.com/llvm/llvm-project/archive/llvmorg-7.1.0.tar.gz"
+
+    parallel = False
+
+    version('13-init', sha256='b417a2f6ca0db4b943431b13f0ec69b9cf88872ff911ea3a190a1108e1b0d833')
     list_url = "http://releases.llvm.org/download.html"
     git = "https://github.com/llvm/llvm-project"
     maintainers = ['trws', 'naromero77']
@@ -54,6 +58,9 @@ class Llvm(CMakePackage, CudaPackage):
     version('3.6.2', sha256='f75d703a388ba01d607f9cf96180863a5e4a106827ade17b221d43e6db20778a')
     version('3.5.1', sha256='5d739684170d5b2b304e4fb521532d5c8281492f71e1a8568187bfa38eb5909d')
     # fmt: on
+
+    # marking non parallel here so we don't run out of memory
+    parallel = False
 
     # NOTE: The debug version of LLVM is an order of magnitude larger than
     # the release version, and may take up 20-30 GB of space. If you want
