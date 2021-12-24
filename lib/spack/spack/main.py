@@ -715,7 +715,9 @@ def print_setup_info(*info):
     # print roots for all module systems
     module_to_roots = {
         'tcl': list(),
-        'lmod': list()
+        'lmod': list(),
+        'ups_table': list(),
+        'ups_version': list(),
     }
     for name in module_to_roots.keys():
         path = spack.modules.common.root_path(name, 'default')
