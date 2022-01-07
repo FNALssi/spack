@@ -19,7 +19,7 @@ from .common import BaseContext, BaseModuleFileWriter
 from .common import root_path
 
 #: TCL specific part of the configuration
-configuration = spack.config.get('modules:ups_version', {})
+# configuration = spack.config.get('module_roots:ups_version', {})
 
 #: Caches the configuration {spec_hash: configuration}
 configuration_registry = {}
