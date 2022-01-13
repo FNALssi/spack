@@ -13,35 +13,42 @@ import inspect
 import llnl.util.tty as tty
 
 import spack.config
+import spack.projections as proj
 import spack.tengine as tengine
 from .common import BaseConfiguration, BaseFileLayout
 from .common import BaseContext, BaseModuleFileWriter
 from .common import root_path
 
-#: TCL specific part of the configuration
 # configuration = spack.config.get('module_roots:ups_table', {})
+
+#: TCL specific part of the configuration
+def configuration(module_set_name):
+    config_path = 'modules:%s:ups_table' % module_set_name
+    config = spack.config.get(config_path, {})
+    if not config and module_set_name == 'default':
+        # return old format for backward compatibility
+        return spack.config.get('modules:ups_table', {})
+    return config
 
 #: Caches the configuration {spec_hash: configuration}
 configuration_registry = {}
 
-def make_configuration(spec):
+def make_configuration(spec, module_set_name):
     """Returns the ups_table configuration for spec"""
-    key = spec.dag_hash()
+    key = (spec.dag_hash(), module_set_name)
     try:
         return configuration_registry[key]
     except KeyError:
-        return configuration_registry.setdefault(key, UpsTableConfiguration(spec))
+        return configuration_registry.setdefault(key, UpsTableConfiguration(spec, module_set_name))
 
 
-def make_layout(spec):
+def make_layout(spec, module_set_name):
     """Returns the layout information for spec """
-    conf = make_configuration(spec)
+    conf = make_configuration(spec, module_set_name)
     return UpsTableFileLayout(conf)
-
-
-def make_context(spec):
+def make_context(spec, module_set_name):
     """Returns the context information for spec"""
-    conf = make_configuration(spec)
+    conf = make_configuration(spec, module_set_name)
     return UpsTableContext(conf)
 
 
@@ -60,7 +67,7 @@ class UpsTableFileLayout(BaseFileLayout):
     extension = "table"
 
     def dirname(self):
-        return root_path('ups_table') + '/'+ self.spec.format("{name}")
+        return root_path('ups_table', 'ups') + '/'+ self.spec.format("{name}")
 
     @property
     def filename(self):
@@ -81,7 +88,7 @@ class UpsTableContext(BaseContext):
     def conflicts(self):
         """List of conflicts for the ups_table module file."""
         fmts = []
-        naming_scheme = self.conf.naming_scheme
+        projection = proj.get_projection(self.conf.projections, self.spec)
         f = string.Formatter()
         for item in self.conf.conflicts:
             if len([x for x in f.parse(item)]) > 1:
