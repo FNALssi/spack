@@ -1,5 +1,5 @@
 FILE = version
-PRODUCT = {{spec.name}}
+PRODUCT = {{spec.name|replace("-","_")}}
 VERSION = {{spec.version}}
 
 {% if   (spec.architecture|string).find('i686')>0   %}{%set upsbits = '' %}
