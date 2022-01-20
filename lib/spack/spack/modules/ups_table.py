@@ -67,13 +67,17 @@ class UpsTableFileLayout(BaseFileLayout):
     extension = "table"
 
     def dirname(self):
-        return root_path('ups_table', 'ups') + '/'+ self.spec.format("{name}")
+        return root_path('ups_table', 'ups') 
 
     @property
     def filename(self):
         """Name of the module file for the current spec."""
+        filename = os.path.basename(self.use_name)
+        subdirname = self.spec.format("{name}").replace('-','_')
+        if not os.access(os.path.join(self.dirname(), subdirname),os.F_OK):
+            os.makedirs(os.path.join(self.dirname(), subdirname))
         fn = "{}-{}-{}.table".format(self.spec.name, self.spec.version, self.spec._hash)
-        fp = os.path.join(self.dirname(), fn)
+        fp = os.path.join(self.dirname(), subdirname, fn.replace('-','_'))
         return  fp
 
 class UpsTableContext(BaseContext):

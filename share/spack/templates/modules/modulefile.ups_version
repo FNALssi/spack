@@ -52,4 +52,4 @@ QUALIFIERS=""
   MODIFIER = {{username}}
   MODIFIED = {{timestamp}}
   PROD_DIR = {{spec.prefix}}
-  TABLE_FILE = {{spec.name}}-{{spec.version}}-{{spec._hash}}.table
+  TABLE_FILE = {{spec.name|replace("-","_")}}_{{spec.version}}_{{spec._hash}}.table
