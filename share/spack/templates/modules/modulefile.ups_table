@@ -3,7 +3,9 @@ PRODUCT = {{spec.name|replace("-", "_")}}
 
 FLAVOR=ANY
 
-{% if   (spec.compiler|string).find('gcc@7.3.0')==0   %}{%set upscompquals = 'e17' %}
+{% if   (spec.compiler|string).find('gcc@9.3.0')==0   %}{%set upscompquals = 'e20' %}
+{% elif (spec.compiler|string).find('gcc@8.2.0')==0   %}{%set upscompquals = 'e19' %}
+{% elif (spec.compiler|string).find('gcc@7.3.0')==0   %}{%set upscompquals = 'e17' %}
 {% elif (spec.compiler|string).find('gcc@6.4.0')==0   %}{%set upscompquals = 'e15' %}
 {% elif (spec.compiler|string).find('gcc@6.3.0')==0   %}{%set upscompquals = 'e14' %}
 {% elif (spec.compiler|string).find('gcc@4.9.3')==0   %}{%set upscompquals = 'e10' %}
