@@ -69,7 +69,7 @@ class UpsVersionFileLayout(BaseFileLayout):
     """File layout for ups_version module files."""
 
     def dirname(self):
-        return root_path('ups_version','ups') 
+        return root_path('ups_version','ups')
 
 
     @property
@@ -77,7 +77,7 @@ class UpsVersionFileLayout(BaseFileLayout):
         """Name of the module file for the current spec."""
         # Just the name of the file
         filename = os.path.basename(self.use_name)
-        subdirname = self.spec.format("{name}/{version}.version")
+        subdirname = self.spec.format("{name}/{version}.version").replace('-','_')
         if not os.access(os.path.join(self.dirname(), subdirname),os.F_OK):
             os.makedirs(os.path.join(self.dirname(), subdirname))
         return os.path.join(self.dirname(), subdirname, filename)
