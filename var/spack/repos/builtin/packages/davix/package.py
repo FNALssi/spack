@@ -29,9 +29,18 @@ class Davix(CMakePackage):
     depends_on('uuid')
     depends_on('openssl')
 
+    variant('thirdparty',default=False)
+    depends_on('gsoap', when='+thirdparty')
+
     def cmake_args(self):
         cmake_args = ['-DCMAKE_CXX_STANDARD={0}'.format(
                       self.spec.variants['cxxstd'].value)]
+
+        if self.spec.variants['thirdparty']:
+            cmake_args.append('-DENABLE_THIRD_PARTY_COPY=ON')
+        else:
+            cmake_args.append('-DENABLE_THIRD_PARTY_COPY=OFF')
+
         if 'darwin' in self.spec.architecture:
             cmake_args.append('-DCMAKE_MACOSX_RPATH=ON')
         return cmake_args
