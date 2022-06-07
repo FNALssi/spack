@@ -424,7 +424,7 @@ def env_loads_setup_parser(subparser):
         '-n', '--module-set-name', default='default',
         help='module set for which to generate load operations')
     subparser.add_argument(
-        '-m', '--module-type', choices=('tcl', 'lmod'),
+        '-m', '--module-type', choices=('tcl', 'lmod', 'ups_table', 'ups_version'),
         help='type of module system to generate loads for')
     spack.cmd.modules.add_loads_arguments(subparser)
 

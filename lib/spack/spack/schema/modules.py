@@ -24,7 +24,7 @@ spec_regex = r'(?!hierarchy|core_specs|verbose|hash_length|whitelist|' \
 
 #: Matches a valid name for a module set
 valid_module_set_name = r'^(?!arch_folder$|lmod$|roots$|enable$|prefix_inspections$|'\
-                        r'tcl$|use_view$)\w[\w-]*$'
+                        r'tcl$|use_view$|ups_table$|ups_version$)\w[\w-]*$'
 
 #: Matches an anonymous spec, i.e. a spec without a root name
 anonymous_spec_regex = r'^[\^@%+~]'
@@ -139,7 +139,7 @@ module_config_properties = {
         'default': [],
         'items': {
             'type': 'string',
-            'enum': ['tcl', 'lmod']
+            'enum': ['tcl', 'lmod','ups_table', 'ups_version']
         }
     },
     'lmod': {
@@ -244,7 +244,7 @@ properties = {
             '^(arch_folder|lmod|roots|enable|tcl|use_view)$': {}
         },
         'deprecatedProperties': {
-            'properties': ['arch_folder', 'lmod', 'roots', 'enable', 'tcl', 'use_view'],
+            'properties': ['arch_folder', 'lmod', 'roots', 'enable', 'tcl', 'use_view','ups_table','ups_version'],
             'message': deprecation_msg_default_module_set,
             'error': False
         }
