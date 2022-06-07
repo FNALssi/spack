@@ -130,6 +130,8 @@ module_config_properties = {
         'properties': {
             'tcl': {'type': 'string'},
             'lmod': {'type': 'string'},
+            'ups_table': {'type': 'string'},
+            'ups_version': {'type': 'string'},
         },
     },
     'enable': {
@@ -169,6 +171,27 @@ module_config_properties = {
             r'^[\w-]*': array_of_strings
         }
     },
+    'dotkit': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
+        ]
+    },
+    'ups_table': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
+        ]
+    },
+    'ups_version': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
+        ]
+    },
 }
 
 
@@ -194,6 +217,20 @@ properties = {
                     # prefix-relative path to be inspected for existence
                     r'^[\w-]*': array_of_strings
                 }
+            },
+            'ups_table': {
+                'allOf': [
+                    # Base configuration
+                    module_type_configuration,
+                    {}  # Specific tcl extensions
+                ]
+            },
+            'ups_version': {
+                'allOf': [
+                    # Base configuration
+                    module_type_configuration,
+                    {}  # Specific tcl extensions
+                ]
             },
         },
         'patternProperties': {
