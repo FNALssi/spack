@@ -8,12 +8,10 @@ non-hierarchical modules.
 """
 import os.path
 import string
-import inspect
 
 import llnl.util.tty as tty
 
 import spack.config
-import spack.projections as proj
 import spack.tengine as tengine
 from .common import BaseConfiguration, BaseFileLayout
 from .common import BaseContext, BaseModuleFileWriter
@@ -22,13 +20,15 @@ from .common import root_path
 #: TCL specific part of the configuration
 # configuration = spack.config.get('module_roots:ups_version', {})
 
+
 def configuration(module_set_name):
-    config_path = 'modules:%s:ups_version' % module_set_name
+    config_path = "modules:%s:ups_version" % module_set_name
     config = spack.config.get(config_path, {})
-    if not config and module_set_name == 'default':
+    if not config and module_set_name == "default":
         # return old format for backward compatibility
-        return spack.config.get('modules:ups_version', {})
+        return spack.config.get("modules:ups_version", {})
     return config
+
 
 #: Caches the configuration {spec_hash: configuration}
 configuration_registry = {}
@@ -41,11 +41,12 @@ def make_configuration(spec, module_set_name):
         return configuration_registry[key]
     except KeyError:
         return configuration_registry.setdefault(
-            key, UpsVersionConfiguration(spec, module_set_name))
+            key, UpsVersionConfiguration(spec, module_set_name)
+        )
 
 
 def make_layout(spec, module_set_name):
-    """Returns the layout information for spec """
+    """Returns the layout information for spec"""
     conf = make_configuration(spec, module_set_name)
     return UpsVersionFileLayout(conf)
 
@@ -62,23 +63,22 @@ class UpsVersionConfiguration(BaseConfiguration):
     @property
     def conflicts(self):
         """Conflicts for this module file"""
-        return self.conf.get('conflict', [])
+        return self.conf.get("conflict", [])
 
 
 class UpsVersionFileLayout(BaseFileLayout):
     """File layout for ups_version module files."""
 
     def dirname(self):
-        return root_path('ups_version','ups')
-
+        return root_path("ups_version", "ups")
 
     @property
     def filename(self):
         """Name of the module file for the current spec."""
         # Just the name of the file
         filename = os.path.basename(self.use_name)
-        subdirname = self.spec.format("{name}/{version}.version").replace('-','_')
-        if not os.access(os.path.join(self.dirname(), subdirname),os.F_OK):
+        subdirname = self.spec.format("{name}/{version}.version").replace("-", "_")
+        if not os.access(os.path.join(self.dirname(), subdirname), os.F_OK):
             os.makedirs(os.path.join(self.dirname(), subdirname))
         return os.path.join(self.dirname(), subdirname, filename)
 
@@ -89,30 +89,32 @@ class UpsVersionContext(BaseContext):
     @tengine.context_property
     def prerequisites(self):
         """List of modules that needs to be loaded automatically."""
-        return self._create_module_list_of('specs_to_prereq')
+        return self._create_module_list_of("specs_to_prereq")
 
     @tengine.context_property
     def conflicts(self):
         """List of conflicts for the ups_version module file."""
         fmts = []
-        projection = proj.get_projection(self.conf.projections, self.spec)
         f = string.Formatter()
         for item in self.conf.conflicts:
+            naming_scheme = self.conf['naming_scheme']
             if len([x for x in f.parse(item)]) > 1:
                 for naming_dir, conflict_dir in zip(
-                        naming_scheme.split('/'), item.split('/')
+                    naming_scheme.split("/"), item.split("/")
                 ):
                     if naming_dir != conflict_dir:
-                        message = 'conflict scheme does not match naming '
-                        message += 'scheme [{spec}]\n\n'
+                        message = "conflict scheme does not match naming "
+                        message += "scheme [{spec}]\n\n"
                         message += 'naming scheme   : "{nformat}"\n'
                         message += 'conflict scheme : "{cformat}"\n\n'
-                        message += '** You may want to check your '
-                        message += '`modules.yaml` configuration file **\n'
-                        tty.error(message.format(spec=self.spec,
-                                                 nformat=naming_scheme,
-                                                 cformat=item))
-                        raise SystemExit('Module generation aborted.')
+                        message += "** You may want to check your "
+                        message += "`modules.yaml` configuration file **\n"
+                        tty.error(
+                            message.format(
+                                spec=self.spec, nformat=naming_scheme, cformat=item
+                            )
+                        )
+                        raise SystemExit("Module generation aborted.")
                 item = self.spec.format(item)
             fmts.append(item)
         # Substitute spec tokens if present
@@ -121,4 +123,5 @@ class UpsVersionContext(BaseContext):
 
 class UpsVersionModulefileWriter(BaseModuleFileWriter):
     """Writer class for ups_version module files."""
-    default_template = os.path.join('modules', 'modulefile.ups_version')
+
+    default_template = os.path.join("modules", "modulefile.ups_version")

@@ -96,7 +96,6 @@ class TestTcl(object):
         )
         assert len([x for x in content if 'FILE = version' in x]) == 1
 
-
     def test_blacklist(self, modulefile_content, module_configuration):
         """Tests blacklisting the generation of selected modules."""
 
@@ -177,12 +176,8 @@ class TestTcl(object):
         """Tests the internal set-up of run-time environment."""
 
         module_configuration('suffix')
-        content = modulefile_content('mpileaks')
-
         spec = spack.spec.Spec('mpileaks')
         spec.concretize()
-        content = modulefile_content(str(spec['callpath']))
-
 
     def test_override_template_in_modules_yaml(
             self, modulefile_content, module_configuration
@@ -204,7 +199,6 @@ class TestTcl(object):
         content = modulefile_content('override-context-templates')
 
         assert 'PRODUCT = override-context-templates' in content
-
 
     @pytest.mark.regression('9624')
     @pytest.mark.db

@@ -139,7 +139,7 @@ module_config_properties = {
         'default': [],
         'items': {
             'type': 'string',
-            'enum': ['tcl', 'lmod','ups_table', 'ups_version']
+            'enum': ['tcl', 'lmod', 'ups_table', 'ups_version']
         }
     },
     'lmod': {
@@ -244,7 +244,8 @@ properties = {
             '^(arch_folder|lmod|roots|enable|tcl|use_view)$': {}
         },
         'deprecatedProperties': {
-            'properties': ['arch_folder', 'lmod', 'roots', 'enable', 'tcl', 'use_view','ups_table','ups_version'],
+            'properties': ['arch_folder', 'lmod', 'roots', 'enable', 'tcl',
+                           'use_view', 'ups_table', 'ups_version'],
             'message': deprecation_msg_default_module_set,
             'error': False
         }

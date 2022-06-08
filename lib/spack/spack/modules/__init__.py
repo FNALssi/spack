@@ -29,4 +29,3 @@ module_types = {
     'ups_table': UpsTableModulefileWriter,
     'ups_version': UpsVersionModulefileWriter,
 }
-

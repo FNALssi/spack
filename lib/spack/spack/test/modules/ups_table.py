@@ -199,7 +199,7 @@ class TestUpsTable(object):
         content = modulefile_content('mpileaks')
 
         assert len([x for x in content if 'EnvSet(FOOBAR' in x]) == 1
-        assert len( [x for x in content if 'EnvSet(FOOBAR, "mpileaks"' in x]) == 1
+        assert len([x for x in content if 'EnvSet(FOOBAR, "mpileaks"' in x]) == 1
 
         spec = spack.spec.Spec('mpileaks')
         spec.concretize()
