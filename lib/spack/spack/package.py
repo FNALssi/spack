@@ -360,8 +360,10 @@ class PackageMeta(
                             if phase is not None:
                                 break
 
-                        phase = attr_dict[phase_attr] = phase.copy()
-                    getattr(phase, check_name).extend(funcs)
+                        if phase is not None:
+                            phase = attr_dict[phase_attr] = phase.copy()
+                    if phase is not None:
+                        getattr(phase, check_name).extend(funcs)
                 # Clear the attribute for the next class
                 setattr(cls, check_attr, {})
 
