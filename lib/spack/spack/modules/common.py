@@ -33,6 +33,7 @@ import copy
 import datetime
 import inspect
 import os.path
+import os
 import re
 from typing import Optional  # novm
 
@@ -885,6 +886,7 @@ class BaseModuleFileWriter(object):
         conf_update = self.conf.context
         context.update(conf_update)
 
+        context.update({'os': os})
         # Render the template
         text = template.render(context)
         # Write it to file

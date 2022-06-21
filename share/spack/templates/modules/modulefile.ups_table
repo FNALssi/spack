@@ -23,6 +23,11 @@ QUALIFIERS="{{upscompquals}}:{{upsdebugquals}}"
 QUALIFIERS=""
 {%endif%}
 
+
+{%set spack_root = os.environ['SPACK_ROOT'] %}
+{%set install_root =  spack_root[0:spack_root.find('/spack/')] %}
+{%if spec.prefix[0:spec.prefix.find('/'+spec.name)] == install_root %}
+
 Action = setup
     prodDir()
     setupEnv()
@@ -47,6 +52,8 @@ Action = setup
 {#  #}
 {% endfor %}
 {% endblock %}
+
+{%endif%}
 
 {% block footer %}
 {# In case he module needs to be extended with custom TCL code #}

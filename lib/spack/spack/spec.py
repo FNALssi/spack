@@ -2814,7 +2814,11 @@ class Spec(object):
         # depends_on(..., patch=...)
         for dspec in root.traverse_edges(deptype=all,
                                          cover='edges', root=False):
-            pkg_deps = dspec.parent.package_class.dependencies
+            try:
+                pkg_class = dspec.parent.package_class
+            except:
+                 continue
+            pkg_deps = pkg_class.dependencies
             if dspec.spec.name not in pkg_deps:
                 continue
 
