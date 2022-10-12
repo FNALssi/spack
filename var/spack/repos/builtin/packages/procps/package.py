@@ -42,3 +42,4 @@ class Procps(AutotoolsPackage):
         ]
         if self.spec["iconv"].name != "libc":
             args.append("--with-libiconv-prefix={0}".format(self.spec["iconv"].prefix))
+        return args
