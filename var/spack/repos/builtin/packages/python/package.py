@@ -551,13 +551,17 @@ class Python(Package):
         for lib in static_libraries:
             copy(lib, prefix.libs)
 
-
     @run_before("configure")
     def patch_configure_ipv6(self):
         # configure fails to build with ipv6 support if ipv6 isn't 
         # configured on this box...
         # but we want it to work anyway so pull its teeth.
-        filter_file(r' test $ipv6 = yes', ' false ', 'configure')
+        filter_file(r' test \$ipv6 = yes', ' false ', 'configure')
+
+    @run_after("configure")
+    def fix_config_goofs(self):
+        filter_file(r'(-L/usr/lib([^a-z0-9])|-lintl( ))','\\2','config.status')
+        os.system("config.status")
 
 
     def configure_args(self):
@@ -581,7 +585,6 @@ class Python(Package):
             # dependencies (which we need to get their 'libs') is to get them
             # using spec.__getitem__.
             ldflags = " ".join(spec[dep.name].libs.search_flags for dep in link_deps)
-
             config_args.extend(["CPPFLAGS=" + cppflags, "LDFLAGS=" + ldflags])
 
         # https://docs.python.org/3/whatsnew/3.7.html#build-changes
