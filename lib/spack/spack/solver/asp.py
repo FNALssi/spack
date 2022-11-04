@@ -2258,9 +2258,27 @@ class SpecBuilder(object):
         roots = [spec.root for spec in self._specs.values() if not spec.root.installed]
         tty.debug("roots list: {0}".format(",".join([root.name for root in roots])))
         roots = dict((id(r), r) for r in roots)
+
+        # build list of roots and names to skip because we don't have their recipe namespaces
+        skiproots = []
+        skipnames = []
         for root in roots.values():
             tty.debug("Injecting roots for: {0}".format(root.name))
-            spack.spec.Spec.inject_patches_variant(root)
+            try: 
+                spack.spec.Spec.inject_patches_variant(root)
+            except spack.repo.UnknownNamespaceError as e1:
+                tty.debug("flagging {0}, we do not have related package namespace: {1}".format(root.name,str(e1)))
+                skiproots.append(root)
+
+        for sr in skiproots:
+            for sn,spec in self._specs.items():
+                if spec.root is sr:
+                    tty.debug("found spec {0} with root {1}".format(sn,sr.name))
+                    skipnames.append((sn,sr.name)) 
+
+        for sn,srn in skipnames:
+            tty.debug("dropping {0}, due to {1} from unkown namespace".format(sn,srn))
+            del self._specs[sn]
 
         # Add external paths to specs with just external modules
         for s in self._specs.values():
