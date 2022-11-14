@@ -20,9 +20,10 @@ properties = {
                         "type": "object",
                         "properties": {
                            "tcl": {"type": "string"}, 
-                           "lmod": {"type": "string"}},
-                           "ups_table": {"type": "string"}},
-                           "ups_version": {"type": "string"}},
+                           "lmod": {"type": "string"},
+                           "ups_table": {"type": "string"},
+                           "ups_version": {"type": "string"},
+                         },
                     },
                 },
             }

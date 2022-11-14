@@ -116,8 +116,6 @@ module_config_properties = {
             "ups_table": {"type": "string"},
             "ups_version": {"type": "string"},
         },
-        },
-        },
     },
     "enable": {
         "type": "array",
