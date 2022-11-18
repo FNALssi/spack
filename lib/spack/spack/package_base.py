@@ -2453,12 +2453,12 @@ class PackageBase(six.with_metaclass(PackageMeta, WindowsRPathMeta, PackageViewM
                 try:
                     fn = getattr(builder, name)
 
-                    msg = ("RUN-TESTS: {0}-time tests [{1}]".format(callback_type, name),)
+                    msg = "RUN-TESTS: {0}-time tests [{1}]".format(callback_type, name)
                     print_test_message(logger, msg, True)
 
                     fn()
                 except AttributeError as e:
-                    msg = ("RUN-TESTS: method not implemented [{0}]".format(name),)
+                    msg = "RUN-TESTS: method not implemented [{0}]".format(name)
                     print_test_message(logger, msg, True)
 
                     builder.pkg.test_failures.append((e, msg))
