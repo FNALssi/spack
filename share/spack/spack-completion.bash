@@ -580,7 +580,7 @@ _spack_change() {
 _spack_checksum() {
     if $list_options
     then
-        SPACK_COMPREPLY="-h --help --keep-stage -b --batch -l --latest -p --preferred"
+        SPACK_COMPREPLY="-h --help --keep-stage -b --batch -l --latest -p --preferred -a --add-to-package"
     else
         _all_packages
     fi
@@ -1439,7 +1439,7 @@ _spack_module_tcl_setdefault() {
 _spack_patch() {
     if $list_options
     then
-        SPACK_COMPREPLY="-h --help -n --no-checksum --deprecated"
+        SPACK_COMPREPLY="-h --help -n --no-checksum --deprecated -U --fresh --reuse"
     else
         _all_packages
     fi
