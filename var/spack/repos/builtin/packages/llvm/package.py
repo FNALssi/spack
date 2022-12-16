@@ -7,11 +7,16 @@ import os.path
 import re
 import sys
 
+import llnl.util.filesystem as fs
 import llnl.util.tty as tty
 
 import spack.build_environment
 import spack.util.executable
+from spack.binary_distribution import BuildManifestVisitor
 from spack.package import *
+from spack.relocate import needs_binary_relocation
+from spack.util.elf import ElfParsingError, parse_elf
+from spack.util.environment import filter_system_paths
 
 
 class Llvm(CMakePackage, CudaPackage):
@@ -756,6 +761,9 @@ class Llvm(CMakePackage, CudaPackage):
         with working_dir(self.build_directory):
             install_tree("bin", join_path(self.prefix, "libexec", "llvm"))
 
+        if sys.platform != "darwin":
+            self._add_missing_runpaths()
+
     def llvm_config(self, *args, **kwargs):
         lc = Executable(self.prefix.bin.join("llvm-config"))
         if not kwargs.get("output"):
@@ -765,6 +773,67 @@ class Llvm(CMakePackage, CudaPackage):
             return ret.split()
         else:
             return ret
+
+    def _add_missing_runpaths(self):
+        """Some LLVM binaries are built without RPATH/RUNPATH but have
+        external dependencies. Add the correct RPATH/RUNPATH to these on
+        ELF systems to avoid the need for LD_LIBRARY_PATH.
+        """
+        root = self.spec.prefix
+        lib_cache = {}
+        for sroot in [os.path.join(root, d) for d in ("bin", "lib", "libexec")]:
+            visitor = BuildManifestVisitor()
+            fs.visit_directory_tree(sroot, visitor)
+            patchelf = which("patchelf")
+            patchelf.add_default_arg("--set-rpath")
+            stripper = re.compile(r"\.so(\.[0-9]+)+$")
+            for rel_path in visitor.files:
+                ####################################
+                # Identify eligible binaries...
+                abs_path = os.path.join(sroot, rel_path)
+                m_type, m_subtype = fs.mime_type(abs_path)
+                if not needs_binary_relocation(m_type, m_subtype):
+                    continue
+                try:
+                    with open(abs_path, "rb") as f:
+                        elf = parse_elf(f, interpreter=False, dynamic_section=True)
+                except ElfParsingError:
+                    continue
+                # ...with dependencies but no RPATH/RUNPATH.
+                if elf.has_rpath or not elf.has_needed:
+                    continue
+                ####################################
+
+                # What libraries are NEEDED by this binary?
+                needed_libs = [stripper.sub(".so", s.decode("utf-8")) for s in elf.dt_needed_strs]
+
+                # Build a list of the paths needed to find these
+                # libraries, starting with what's needed to find
+                # libraries from the compiler we use to build LLVM.
+                needed_paths = self.compiler.extra_rpaths + self.compiler.implicit_rpaths()
+
+                for lib in needed_libs:
+                    # Identify needed libraries provided by dependencies.
+                    if lib not in lib_cache:
+                        for pkg, pkg_libs in self._dependency_liblists.items():
+                            if lib in pkg_libs.basenames:
+                                lib_cache[lib] = filter_system_paths(pkg_libs.directories)
+                                break
+                        else:
+                            lib_cache[lib] = []
+                    needed_paths.extend(lib_cache[lib])
+                if needed_paths:
+                    tty.debug("adding RPATH/RUNPATH to " + rel_path)
+                    patchelf(":".join(needed_paths), abs_path, fail_on_error=False)
+
+    @property
+    def _dependency_liblists(self):
+        """Return a dictionary associating link dependencies with each package."""
+        return {
+            spec.package.name: spec.package.libs
+            for spec in self.spec.dependencies(deptype="link")
+            if hasattr(spec.package, "libs")
+        }
 
 
 def get_llvm_targets_to_build(spec):
