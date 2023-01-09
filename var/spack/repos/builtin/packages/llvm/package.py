@@ -242,7 +242,8 @@ class Llvm(CMakePackage, CudaPackage):
     # openmp dependencies
     depends_on("perl-data-dumper", type=("build"))
     depends_on("hwloc")
-    depends_on("libelf", when="+cuda")  # libomptarget
+    depends_on("hwloc@2.0.1:", when="@9:")
+    depends_on("elf", when="+cuda")  # libomptarget
     depends_on("libffi", when="+cuda")  # libomptarget
 
     # llvm-config --system-libs libraries.
@@ -604,9 +605,7 @@ class Llvm(CMakePackage, CudaPackage):
                     [
                         define("LIBOMPTARGET_NVPTX_ENABLE_BCLIB", True),
                         # work around bad libelf detection in libomptarget
-                        define(
-                            "LIBOMPTARGET_DEP_LIBELF_INCLUDE_DIR", spec["libelf"].prefix.include
-                        ),
+                        define("LIBOMPTARGET_DEP_LIBELF_INCLUDE_DIR", spec["elf"].prefix.include),
                     ]
                 )
         else:
@@ -743,9 +742,7 @@ class Llvm(CMakePackage, CudaPackage):
                 cmake_args.extend(
                     [
                         define("LIBOMPTARGET_NVPTX_ENABLE_BCLIB", True),
-                        define(
-                            "LIBOMPTARGET_DEP_LIBELF_INCLUDE_DIR", spec["libelf"].prefix.include
-                        ),
+                        define("LIBOMPTARGET_DEP_LIBELF_INCLUDE_DIR", spec["elf"].prefix.include),
                         self.stage.source_path + "/openmp",
                     ]
                 )
