@@ -36,7 +36,7 @@ class Root(CMakePackage):
 
     tags = ["hep"]
 
-    maintainers = ["chissg", "HadrienG2", "drbenmorgan", "vvolkl"]
+    maintainers("chissg", "HadrienG2", "drbenmorgan", "vvolkl")
 
     # ###################### Versions ##########################
 
