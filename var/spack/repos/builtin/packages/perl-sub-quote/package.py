@@ -13,7 +13,7 @@ class PerlSubQuote(PerlPackage):
     homepage = "https://cpan.metacpan.org/authors/id/H/HA/HAARG"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/H/HA/HAARG/Sub-Quote-2.006006.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("2.006_007", sha256="ccb226d1d1a0d1cde99eabe98cb4eeb89f9f9eaf961be226d903e9ac333e5220")
     version(

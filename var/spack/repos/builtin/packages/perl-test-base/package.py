@@ -12,7 +12,7 @@ class PerlTestBase(PerlPackage):
     homepage = "https://github.com/ingydotnet/test-base-pm"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/I/IN/INGY/Test-Base-0.89.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.89", sha256="2794a1aaaeb1d3a287dd2c7286258663796562f7db9ccc6b424bc4f1de8ad014")
     version("0.88", sha256="52368cc5a9cbbc4eaba33ed820672f92001b73d8bcba0bb95d5fdb1d370b9039")

@@ -12,7 +12,7 @@ class PerlAck(PerlPackage):
     homepage = "https://beyondgrep.com/"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/P/PE/PETDANCE/ack-v3.6.0.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("3.6.0", sha256="03144d1070649e92f6a1b7d20bdc535e2bb1ac258daabe482e9aa8277b48f005")
     version("3.5.0", sha256="66053e884e803387a02ddee0d68abf2a10239fab654364dab33287309a725521")

@@ -12,7 +12,7 @@ class PerlPerlCriticLax(PerlPackage):
     homepage = "https://github.com/rjbs/Perl-Critic-Lax"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/R/RJ/RJBS/Perl-Critic-Lax-0.013.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.013", sha256="3f5619c209f93676e2fcdcd2990a27a5d77d2b0e60dcbdcd2680617355fd4620")
     version("0.012", sha256="47772ddbdd3c6ab00571c0ed8e95aeace705f725c650a572f060c30f7a96227a")

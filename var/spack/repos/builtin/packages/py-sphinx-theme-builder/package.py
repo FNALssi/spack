@@ -12,7 +12,7 @@ class PySphinxThemeBuilder(PythonPackage):
     homepage = "https://github.com/pradyunsg/sphinx-theme-builder"
     pypi = "sphinx-theme-builder/sphinx-theme-builder-0.2.0b1.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")
 
     version("0.2.0b1", sha256="e9bb4a0a8516bab8769b9ddf003b70e5878611113319eb1fdb690af84a3a595f")
 

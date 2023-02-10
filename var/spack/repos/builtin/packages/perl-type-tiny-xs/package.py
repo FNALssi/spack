@@ -13,7 +13,7 @@ class PerlTypeTinyXs(PerlPackage):
     homepage = "https://metacpan.org/release/Type-Tiny-XS"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/T/TO/TOBYINK/Type-Tiny-XS-0.022.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.022", sha256="bcc34a31f7dc1d30cc803889b5c8f90e4773b73b5becbdb3860f5abe7e22ff00")
     version("0.021", sha256="f7a9e216d1496744def402aa326620e13e73ad1ee7109cfbaeaac363d8eaf5df")

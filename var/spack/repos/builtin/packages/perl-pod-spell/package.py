@@ -12,7 +12,7 @@ class PerlPodSpell(PerlPackage):
     homepage = "https://github.com/perl-pod/Pod-Spell"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/D/DO/DOLMEN/Pod-Spell-1.20.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("1.20", sha256="6383f7bfe22bc0d839a08057a0ce780698b046184aea935be4833d94986dd03c")
     version("1.19_91", sha256="b1e2f8303d2b01184ce189f45eedb0001bad4fd4707d42b6af507184ab6ddf42")

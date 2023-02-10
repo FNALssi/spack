@@ -12,7 +12,7 @@ class PerlHashMoreutils(PerlPackage):
     homepage = "https://metacpan.org/release/Hash-MoreUtils"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/R/RE/REHSACK/Hash-MoreUtils-0.06.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.06", sha256="db9a8fb867d50753c380889a5e54075651b5e08c9b3b721cb7220c0883547de8")
     version("0.05", sha256="5e9c8458457eb18315a5669e3bef68488cd5ed8c2220011ac7429ff983288ab1")

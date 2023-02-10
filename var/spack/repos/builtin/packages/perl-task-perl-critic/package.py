@@ -12,7 +12,7 @@ class PerlTaskPerlCritic(PerlPackage):
     homepage = "http://perlcritic.com"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/T/TH/THALJEF/Task-Perl-Critic-1.008.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("1.008", sha256="626e4d746023b1f573f05a90fdcd0a0eb8f1b292882ac6535cadbdcd281f16ce")
 

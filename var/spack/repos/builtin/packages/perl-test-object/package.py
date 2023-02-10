@@ -12,7 +12,7 @@ class PerlTestObject(PerlPackage):
     homepage = "https://github.com/karenetheridge/Test-Object"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/E/ET/ETHER/Test-Object-0.08.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.08", sha256="65278964147837313f4108e55b59676e8a364d6edf01b3dc198aee894ab1d0bb")
 

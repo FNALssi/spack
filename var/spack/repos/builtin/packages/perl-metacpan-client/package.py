@@ -12,7 +12,7 @@ class PerlMetacpanClient(PerlPackage):
     homepage = "https://cpan.metacpan.org/authors/id/M/MI/MICKEY"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/M/MI/MICKEY/MetaCPAN-Client-2.030000.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version(
         "2.030.000",

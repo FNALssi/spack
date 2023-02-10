@@ -12,7 +12,7 @@ class PerlNamespaceAutoclean(PerlPackage):
     homepage = "https://github.com/moose/namespace-autoclean"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/E/ET/ETHER/namespace-autoclean-0.29.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version(
         "0.30-TRIAL",

@@ -12,7 +12,7 @@ class PyPytestRegressions(PythonPackage):
     homepage = "https://github.com/ESSS/pytest-regressions"
     pypi = "pytest-regressions/pytest-regressions-2.3.1.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")
 
     version("2.3.1", sha256="b3ec4cdb34e8f627606275d8b834c65e60e1a3073e326bb3727a427273d0221d")
 

@@ -12,7 +12,7 @@ class PerlHttpCookiejar(PerlPackage):
     homepage = "https://github.com/dagolden/HTTP-CookieJar"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/D/DA/DAGOLDEN/HTTP-CookieJar-0.014.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.014", sha256="7094ea5c91f536d263b85e83ab4e9a963e11c4408ce08ecae553fa9c0cc47e73")
 

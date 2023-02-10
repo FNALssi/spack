@@ -12,7 +12,7 @@ class PerlChi(PerlPackage):
     homepage = "https://cpan.metacpan.org/authors/id/A/AS/ASB"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/A/AS/ASB/CHI-0.61.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("0.61", sha256="583545c9e5312bb4193ab16de9f55ff8f4b4a7ded128cee8dd2cb021d4678b5b")
 

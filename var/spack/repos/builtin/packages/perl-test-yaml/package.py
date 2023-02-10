@@ -12,7 +12,7 @@ class PerlTestYaml(PerlPackage):
     homepage = "https://github.com/ingydotnet/test-yaml-pm"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/T/TI/TINITA/Test-YAML-1.07.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("1.07", sha256="1f300d034f46298cb92960912cc04bac33fb27f05b8852d8f051e110b9cd995f")
 

@@ -12,7 +12,7 @@ class PerlSafeIsa(PerlPackage):
     homepage = "https://cpan.metacpan.org/authors/id/E/ET/ETHER"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/E/ET/ETHER/Safe-Isa-1.000010.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version(
         "1.000.010",

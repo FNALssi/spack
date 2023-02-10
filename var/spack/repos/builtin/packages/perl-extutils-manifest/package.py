@@ -12,7 +12,7 @@ class PerlExtutilsManifest(PerlPackage):
     homepage = "https://metacpan.org/release/ExtUtils-Manifest"  # AUTO-CPAN2Spack
     url = "https://cpan.metacpan.org/authors/id/E/ET/ETHER/ExtUtils-Manifest-1.73.tar.gz"
 
-    maintainers = ["chissg", "gartung", "marcmengel", "vitodb"]  # AUTO-CPAN2Spack
+    maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
 
     version("1.73", sha256="dc5c063dac0b1ad64fa43cda3a51ee66e1952be8da495ddb34b82f9db88fbaf8")
     version("1.72", sha256="799280074f98ef2d7fdf4f75521ad83ec01c2e068e54a45c92968cd9dc2db45e")
