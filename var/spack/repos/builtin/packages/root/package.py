@@ -46,6 +46,7 @@ class Root(CMakePackage):
     # Development version (when more recent than production).
 
     # Production version
+    version("6.28.00", sha256="afa1c5c06d0915411cb9492e474ea9ab12b09961a358e7e559013ed63b5d8084")
     version("6.26.10", sha256="8e56bec397104017aa54f9eb554de7a1a134474fe0b3bb0f43a70fc4fabd625f")
     version("6.26.08", sha256="4dda043e7918b40743ad0299ddd8d526b7078f0a3822fd06066df948af47940e")
     version("6.26.06", sha256="b1f73c976a580a5c56c8c8a0152582a1dfc560b4dd80e1b7545237b65e6c89cb")
@@ -323,8 +324,8 @@ class Root(CMakePackage):
     conflicts("+tmva", when="~gsl", msg="TVMA requires GSL")
     conflicts("+tmva", when="~mlp", msg="TVMA requires MLP")
     conflicts("cxxstd=11", when="+root7", msg="root7 requires at least C++14")
-    conflicts("cxxstd=11", when="@6.25.02:", msg="This version of root " "requires at least C++14")
-    conflicts("cxxstd=20", when="@:6.25.01", msg="C++20 support was added " "in 6.25.02")
+    conflicts("cxxstd=11", when="@6.25.02:", msg="This version of root requires at least C++14")
+    conflicts("cxxstd=20", when="@:6.28.00", msg="C++20 support delayed to 6.28.??")
 
     # See https://github.com/root-project/root/issues/11128
     conflicts("%clang@16:", when="@:6.26.07", msg="clang 16+ support was added in 6.26.08")
