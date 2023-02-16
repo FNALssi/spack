@@ -21,7 +21,7 @@ import spack.multimethod
 import spack.package_base
 import spack.spec
 import spack.store
-from spack.directives import build_system, depends_on, extends
+from spack.directives import build_system, depends_on, extends, maintainers
 from spack.error import NoHeadersError, NoLibrariesError, SpackError, SpecError
 from spack.version import Version
 
@@ -44,7 +44,7 @@ class UnknownFeatureError(SpackError):
 
 
 class PythonExtension(spack.package_base.PackageBase):
-    maintainers = ["adamjstewart"]
+    maintainers("adamjstewart", "pradyunsg")
 
     @property
     def import_modules(self):
@@ -198,8 +198,6 @@ class PythonPackage(PythonExtension):
 
     #: Package name, version, and extension on PyPI
     pypi: Optional[str] = None
-
-    maintainers = ["adamjstewart", "pradyunsg"]
 
     # To be used in UI queries that require to know which
     # build-system class we are using
