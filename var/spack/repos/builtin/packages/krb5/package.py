@@ -85,10 +85,6 @@ class Krb5(AutotoolsPackage):
 
         return args
 
-    def setup_build_environment(self, env):
-        if "intl" in self.spec["gettext"].libs.names:
-            env.prepend_path("LD_LIBRARY_PATH", "-lintl")
-
     def flag_handler(self, name, flags):
         if name == "ldlibs":
             if "intl" in self.spec["gettext"].libs.names:
