@@ -203,7 +203,7 @@ properties = {
                 "default": {},
                 "additionalProperties": False,
                 "properties": module_config_properties,
-            },
+            }
         },
     }
 }

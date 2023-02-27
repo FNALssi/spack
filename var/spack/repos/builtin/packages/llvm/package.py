@@ -81,9 +81,7 @@ class Llvm(CMakePackage, CudaPackage):
     # to save space, build with `build_type=Release`.
 
     variant(
-        "clang",
-        default=True,
-        description="Build the LLVM C/C++/Objective-C compiler frontend",
+        "clang", default=True, description="Build the LLVM C/C++/Objective-C compiler frontend"
     )
     variant(
         "flang",
@@ -101,10 +99,7 @@ class Llvm(CMakePackage, CudaPackage):
     variant("lld", default=True, description="Build the LLVM linker")
     variant("mlir", default=False, when="@10:", description="Build with MLIR support")
     variant(
-        "internal_unwind",
-        default=True,
-        when="+clang",
-        description="Build the libcxxabi libunwind",
+        "internal_unwind", default=True, when="+clang", description="Build the libcxxabi libunwind"
     )
     variant(
         "polly",
@@ -112,10 +107,7 @@ class Llvm(CMakePackage, CudaPackage):
         description="Build the LLVM polyhedral optimization plugin, " "only builds for 3.7.0+",
     )
     variant(
-        "libcxx",
-        default=True,
-        when="+clang",
-        description="Build the LLVM C++ standard library",
+        "libcxx", default=True, when="+clang", description="Build the LLVM C++ standard library"
     )
     variant(
         "compiler-rt",
@@ -128,11 +120,7 @@ class Llvm(CMakePackage, CudaPackage):
         default=(sys.platform != "darwin"),
         description="Add support for LTO with the gold linker plugin",
     )
-    variant(
-        "split_dwarf",
-        default=False,
-        description="Build with split dwarf information",
-    )
+    variant("split_dwarf", default=False, description="Build with split dwarf information")
     variant(
         "llvm_dylib",
         default=True,
