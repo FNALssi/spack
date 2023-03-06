@@ -54,7 +54,6 @@ import io
 import itertools
 import os
 import re
-import sys
 import warnings
 from typing import Tuple
 
@@ -119,7 +118,6 @@ __all__ = [
     "SpecDeprecatedError",
 ]
 
-is_windows = sys.platform == "win32"
 #: Valid pattern for an identifier in Spack
 
 identifier_re = r"\w[\w-]*"
