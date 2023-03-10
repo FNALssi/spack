@@ -11,20 +11,6 @@ from spack.package import *
 from spack.util.environment import is_system_path
 
 
-def sanitize_environments(*args):
-    for env in args:
-        for var in (
-            "PATH",
-            "LD_LIBRARY_PATH",
-            "DYLD_LIBRARY_PATH",
-            "LIBRARY_PATH",
-            "CMAKE_PREFIX_PATH",
-            "ROOT_INCLUDE_PATH",
-        ):
-            env.prune_duplicate_paths(var)
-            env.deprioritize_system_paths(var)
-
-
 class Root(CMakePackage):
     """ROOT is a data analysis framework."""
 
@@ -654,7 +640,7 @@ class Root(CMakePackage):
             # warnings when building against ROOT
             env.unset("MACOSX_DEPLOYMENT_TARGET")
         # Cleanup.
-        sanitize_environments(env)
+        self.sanitize_environments(env)
 
     def setup_run_environment(self, env):
         env.set("ROOTSYS", self.prefix)
@@ -664,9 +650,9 @@ class Root(CMakePackage):
         env.set("CLING_STANDARD_PCH", "none")
         env.set("CPPYY_API_PATH", "none")
         # Cleanup.
-        sanitize_environments(env)
+        self.sanitize_environments(env)
 
-    def setup_dependent_build_environment(self, env, dependent_spec):
+    def setup_dependent_build_environment(self, env: spack.util.environment.EnvironmentModifications, dependent_spec):
         env.set("ROOTSYS", self.prefix)
         env.set("ROOT_VERSION", "v{0}".format(self.version.up_to(1)))
         env.prepend_path("PYTHONPATH", self.prefix.lib.root)
@@ -679,9 +665,9 @@ class Root(CMakePackage):
             # Newer deployment targets cause fatal errors in rootcling
             env.unset("MACOSX_DEPLOYMENT_TARGET")
         # Cleanup.
-        sanitize_environments(env)
+        self.sanitize_environments(env)
 
-    def setup_dependent_run_environment(self, env, dependent_spec):
+    def setup_dependent_run_environment(self, env: spack.util.environment.EnvironmentModifications, dependent_spec):
         env.set("ROOTSYS", self.prefix)
         env.set("ROOT_VERSION", "v{0}".format(self.version.up_to(1)))
         env.prepend_path("PYTHONPATH", self.prefix.lib.root)
@@ -690,4 +676,19 @@ class Root(CMakePackage):
         if "+rpath" not in self.spec:
             env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib.root)
         # Cleanup.
-        sanitize_environments(env)
+        self.sanitize_environments(env)
+
+    def sanitize_environments(self, env: spack.util.environment.EnvironmentModifications, *vars):
+        target = self.spec.target
+        if not vars:
+            vars = (
+                "PATH",
+                "LD_LIBRARY_PATH",
+                "DYLD_LIBRARY_PATH",
+                "LIBRARY_PATH",
+                "CMAKE_PREFIX_PATH",
+                "ROOT_INCLUDE_PATH",
+            )
+        for var in vars:
+            env.prune_duplicate_paths(var)
+            env.deprioritize_system_paths(var, target=target)
