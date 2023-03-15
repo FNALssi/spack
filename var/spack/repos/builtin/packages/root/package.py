@@ -683,6 +683,7 @@ class Root(CMakePackage):
         if not vars:
             vars = (
                 "PATH",
+                "LDSHARED",
                 "LD_LIBRARY_PATH",
                 "DYLD_LIBRARY_PATH",
                 "LIBRARY_PATH",
