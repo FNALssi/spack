@@ -680,6 +680,7 @@ class Root(CMakePackage):
 
     def sanitize_environments(self, env: spack.util.environment.EnvironmentModifications, *vars):
         target = self.spec.target
+        special_separators = { "LDSHARED": " -L" }
         if not vars:
             vars = (
                 "PATH",
@@ -691,5 +692,11 @@ class Root(CMakePackage):
                 "ROOT_INCLUDE_PATH",
             )
         for var in vars:
-            env.prune_duplicate_paths(var)
-            env.deprioritize_system_paths(var, target=target)
+            kwargs = {}
+            if var in special_separators:
+                kwargs["separator"] = special_separators[var]
+            env.prune_duplicate_paths(var, **kwargs)
+            if (var == "PATH"):
+                env.deprioritize_system_paths(var, target=target, **kwargs)
+            else:
+                env.remove_system_paths(var, **kwargs)
