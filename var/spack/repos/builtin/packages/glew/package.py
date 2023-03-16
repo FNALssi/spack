@@ -6,6 +6,7 @@
 import sys
 
 from spack.package import *
+from spack.util.environment import is_system_path
 
 
 class Glew(CMakePackage):
@@ -48,8 +49,6 @@ class Glew(CMakePackage):
             self.define("GLEW_REGAL", False),
             self.define("GLEW_EGL", False),
             self.define("OpenGL_GL_PREFERENCE", "LEGACY"),
-            self.define("OPENGL_INCLUDE_DIR", spec["gl"].headers.directories[0]),
-            self.define("OPENGL_gl_LIBRARY", spec["gl"].libs[0]),
             self.define("OPENGL_opengl_LIBRARY", "IGNORE"),
             self.define("OPENGL_glx_LIBRARY", "IGNORE"),
             self.define("OPENGL_egl_LIBRARY", "IGNORE"),
@@ -58,5 +57,10 @@ class Glew(CMakePackage):
             self.define("GLEW_X11", "gl=glx" in spec),
             self.define("CMAKE_DISABLE_FIND_PACKAGE_X11", "gl=glx" not in spec),
         ]
+        if not is_system_path(spec["gl"].headers.directories[0]):
+            args+=[
+                self.define("OPENGL_INCLUDE_DIR", spec["gl"].headers.directories[0]),
+                self.define("OPENGL_gl_LIBRARY", spec["gl"].libs[0]),
+            ]
 
         return args
