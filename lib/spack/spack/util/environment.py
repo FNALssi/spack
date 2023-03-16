@@ -387,6 +387,17 @@ class RemovePath(NameValueModifier):
         env[self.name] = self.separator.join(directories)
 
 
+class RemoveSystemPaths(NameModifier):
+    def execute(self, env: MutableMapping[str, str]):
+        tty.debug(f"RemoveSystemPaths: {self.name}", level=3)
+        environment_value = env.get(self.name, "")
+        directories = environment_value.split(self.separator) if environment_value else []
+        directories = filter_system_paths(
+            [path_to_os_path(os.path.normpath(x)).pop() for x in directories]
+        )
+        env[self.name] = self.separator.join(directories)
+
+
 class DeprioritizeSystemPaths(NameModifier):
     __slots__ = ("target",)
 
@@ -555,6 +566,16 @@ class EnvironmentModifications:
             separator: separator for the paths (default: os.pathsep)
         """
         item = RemovePath(name, path, separator=separator, trace=self._trace())
+        self.env_modifications.append(item)
+
+    def remove_system_paths(self, name: str, separator: str = os.pathsep):
+        """Stores a request to remove system paths from a list of paths.
+
+        Args:
+            name: name of the environment variable
+            separator: separator for the paths (default: os.pathsep)
+        """
+        item = RemoveSystemPaths(name, separator=separator, trace=self._trace())
         self.env_modifications.append(item)
 
     def deprioritize_system_paths(self, name: str, separator: str = os.pathsep, target: Optional[Union[str, spack.target.Target]] = None):
