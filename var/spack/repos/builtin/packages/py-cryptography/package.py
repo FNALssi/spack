@@ -30,6 +30,7 @@ class PyCryptography(PythonPackage):
     variant("idna", default=False, when="@2.5:3.0", description="Deprecated U-label support")
 
     depends_on("python@3.6:", when="@3.4:", type=("build", "run"))
+    depends_on("python@2.7:2.8,3.6:", when="@3.3.0:3.3", type=("build", "run"))
     depends_on("python@2.7:2.8,3.4:", when="@2.3.1:", type=("build", "run"))
     depends_on("python@2.6:2.8,3.4:", type=("build", "run"))
 
