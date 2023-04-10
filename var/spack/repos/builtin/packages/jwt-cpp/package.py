@@ -36,17 +36,14 @@ class JwtCpp(CMakePackage):
     depends_on("openssl@1.0.1:", when="@0.6.0: ssl=openssl")
     depends_on("libressl@3:", when="@0.5.0: ssl=libressl")
 
-
     def cmake_args(self):
         spec = self.spec
         define = self.define
         args = []
         if spec.satisfies("@0.5.0:"):
-            ssl_library_dict = { "openssl": "OpenSSL", "libressl": "LibreSSL" }
-            args.append(define("JWT_SSL_LIBRARY",
-                               ssl_library_dict[spec.variants["ssl"].value]))
-            args+=[define("JWT_BUILD_TESTS", False),
-                   define("JWT_BUILD_EXAMPLES", False)]
+            ssl_library_dict = {"openssl": "OpenSSL", "libressl": "LibreSSL"}
+            args.append(define("JWT_SSL_LIBRARY", ssl_library_dict[spec.variants["ssl"].value]))
+            args += [define("JWT_BUILD_TESTS", False), define("JWT_BUILD_EXAMPLES", False)]
         else:
             args.append(define("BUILD_TESTS", False))
         return args
