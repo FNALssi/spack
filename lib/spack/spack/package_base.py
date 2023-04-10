@@ -1264,7 +1264,7 @@ class PackageBase(six.with_metaclass(PackageMeta, WindowsRPathMeta, PackageViewM
         if deps:
             #assert len(deps) == 1
             if len(deps) == 2:
-                assert(repr(deps[1])==repr(deps[1]))
+                assert(repr(deps[0])==repr(deps[1]))
                 tty.debug("duplicated extendee deps?! {0}".format(repr(deps[0])))
             else:
                 assert len(deps) == 1
