@@ -89,7 +89,7 @@ class Clhep(CMakePackage):
             "-DCMAKE_Fortran_COMPILER={0}".format(self.compiler.f77_names[0]),
         ]
 
-        if not ('build_type=Debug' in self.spec):
+        if not ("build_type=Debug" in self.spec):
             compile_options = "-O3 -g -fno-omit-frame-pointer"
             cmake_args.append("-DCMAKE_C_FLAGS={0}".format(compile_options))
             cmake_args.append("-DCMAKE_CXX_FLAGS={0}".format(compile_options))
