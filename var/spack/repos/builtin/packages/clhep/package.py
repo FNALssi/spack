@@ -90,7 +90,7 @@ class Clhep(CMakePackage):
         ]
 
         if not ('build_type=Debug' in self.spec):
-            compile_options="-O3 -g -fno-omit-frame-pointer"
+            compile_options = "-O3 -g -fno-omit-frame-pointer"
             cmake_args.append("-DCMAKE_C_FLAGS={0}".format(compile_options))
             cmake_args.append("-DCMAKE_CXX_FLAGS={0}".format(compile_options))
 
