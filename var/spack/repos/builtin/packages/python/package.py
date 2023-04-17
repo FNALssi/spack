@@ -113,7 +113,7 @@ class Python(Package):
     extendable = True
 
     # Variants to avoid cyclical dependencies for concretizer
-    variant("libxml2", default=True, description="Use a gettext library build with libxml2")
+    variant("libxml2", default=False, description="Use a gettext library build with libxml2")
 
     variant(
         "debug", default=False, description="debug build with extra checks (this is high overhead)"
@@ -153,8 +153,9 @@ class Python(Package):
 
     if sys.platform != "win32":
         depends_on("pkgconfig@0.9.0:", type="build")
-        depends_on("gettext +libxml2", when="+libxml2")
-        depends_on("iconv", when="~libxml2")
+        depends_on("iconv")
+        with when("+libxml2"):
+            depends_on("iconv ^gettext +libxml2")
 
         # Optional dependencies
         # See detect_modules() in setup.py for details

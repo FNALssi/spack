@@ -123,7 +123,7 @@ class Glib(Package):
     depends_on("pkgconfig", type="build")
     depends_on("libffi")
     depends_on("zlib")
-    depends_on("gettext")
+    depends_on("iconv")
     depends_on("perl", type=("build", "run"))
     depends_on("python", type=("build", "run"), when="@2.53.4:")
     depends_on("pcre2", when="@2.73.2:")
@@ -146,9 +146,10 @@ class Glib(Package):
 
     # glib prefers the libc version of gettext, which breaks the build if the
     # external version is also found.
-    patch("meson-gettext.patch", when="@2.58:2.64")
-    patch("meson-gettext-2.66.patch", when="@2.66:2.68,2.72")
-    patch("meson-gettext-2.70.patch", when="@2.70")
+    with when("^gettext"):
+        patch("meson-gettext.patch", when="@2.58:2.64 ^gettext")
+        patch("meson-gettext-2.66.patch", when="@2.66:2.68,2.72 ^gettext")
+        patch("meson-gettext-2.70.patch", when="@2.70 ^gettext")
 
     def url_for_version(self, version):
         """Handle glib's version-based custom URLs."""
@@ -173,8 +174,9 @@ class Glib(Package):
 
     def meson_args(self):
         args = []
-        if self.spec.satisfies("@:2.72"):
-            args.append("-Dgettext=external")
+        with when("^gettext"):
+            if self.spec.satisfies("@:2.72"):
+                args.append("-Dgettext=external")
         if self.spec.satisfies("@2.63.5:"):
             if "+libmount" in self.spec:
                 args.append("-Dlibmount=enabled")
@@ -334,16 +336,17 @@ class Glib(Package):
         files = [join_path(self.prefix.bin, file) for file in files]
         filter_file(pattern, repl, *files, backup=False)
 
-    @run_after("install")
-    def gettext_libdir(self):
-        # Packages that link to glib were also picking up -lintl from glib's
-        # glib-2.0.pc file. However, packages such as py-pygobject were
-        # bypassing spack's compiler wrapper for linking and thus not finding
-        # the gettext library directory. The patch below explitly adds the
-        # appropriate -L path.
-        spec = self.spec
-        if spec.satisfies("@2.0:2"):
-            pattern = "Libs:"
-            repl = "Libs: -L{0} -Wl,-rpath={0} ".format(spec["gettext"].libs.directories[0])
-            myfile = join_path(self.spec["glib"].libs.directories[0], "pkgconfig", "glib-2.0.pc")
-            filter_file(pattern, repl, myfile, backup=False)
+    with when("^gettext"):
+        @run_after("install")
+        def gettext_libdir(self):
+            # Packages that link to glib were also picking up -lintl from glib's
+            # glib-2.0.pc file. However, packages such as py-pygobject were
+            # bypassing spack's compiler wrapper for linking and thus not finding
+            # the gettext library directory. The patch below explitly adds the
+            # appropriate -L path.
+            spec = self.spec
+            if spec.satisfies("@2.0:2"):
+                pattern = "Libs:"
+                repl = "Libs: -L{0} -Wl,-rpath={0} ".format(spec["gettext"].libs.directories[0])
+                myfile = join_path(self.spec["glib"].libs.directories[0], "pkgconfig", "glib-2.0.pc")
+                filter_file(pattern, repl, myfile, backup=False)

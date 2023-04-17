@@ -420,7 +420,7 @@ class Git(AutotoolsPackage):
     depends_on("m4", type="build")
     depends_on("curl")
     depends_on("expat")
-    depends_on("gettext", when="+nls")
+    depends_on("iconv", when="+nls")
     depends_on("iconv")
     depends_on("libidn2")
     depends_on("openssl")
@@ -467,7 +467,7 @@ class Git(AutotoolsPackage):
         # In that case the node in the DAG gets truncated and git DOES NOT
         # have a gettext dependency.
         if "+nls" in self.spec:
-            if "intl" in self.spec["gettext"].libs.names:
+            if "gettext" in self.spec and "intl" in self.spec["gettext"].libs.names:
                 env.append_flags("EXTLIBS", "-L{0} -lintl".format(self.spec["gettext"].prefix.lib))
             env.append_flags("CFLAGS", "-I{0}".format(self.spec["gettext"].headers.directories))
 
