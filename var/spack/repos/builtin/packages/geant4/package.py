@@ -5,7 +5,6 @@
 
 from spack.package import *
 
-
 class Geant4(CMakePackage):
     """Geant4 is a toolkit for the simulation of the passage of particles
     through matter. Its areas of application include high energy, nuclear
@@ -67,7 +66,7 @@ class Geant4(CMakePackage):
     depends_on("cmake@3.8:", type="build", when="@10.6.0:")
     depends_on("cmake@3.5:", type="build")
 
-    depends_on("geant4-data", type="run", version_translator=Version)
+    depends_on("geant4-data", type="run", version_translator=spack.version.ver)
 
     depends_on("expat")
     depends_on("zlib")
