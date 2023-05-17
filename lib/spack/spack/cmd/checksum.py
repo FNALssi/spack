@@ -20,7 +20,7 @@ import spack.util.crypto
 from spack.package_base import deprecated_version, preferred_version
 from spack.util.editor import editor
 from spack.util.naming import valid_fully_qualified_module_name
-from spack.version import Version
+from spack.version import Version, ver
 
 description = "checksum available versions of a package"
 section = "packaging"
@@ -134,9 +134,7 @@ def checksum(parser, args):
     for line in version_lines.splitlines():
         v_match = d_splitter.match(line)
         url = vstring_url_dict[v_match.group(3)]
-        if url in pkg.version_urls().values() or url != pkg.url_for_version(
-            Version(v_match.group(3))
-        ):
+        if url in pkg.version_urls().values() or url != pkg.url_for_version(ver(v_match.group(3))):
             print(
                 *v_match.group(1, 2, 3, 4),
                 ",\n",
