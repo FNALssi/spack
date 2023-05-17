@@ -134,7 +134,9 @@ def checksum(parser, args):
     for line in version_lines.splitlines():
         v_match = d_splitter.match(line)
         url = vstring_url_dict[v_match.group(3)]
-        if url in pkg.version_urls().values() or url != pkg.url_for_version(Version(v_match.group(3))):
+        if url in pkg.version_urls().values() or url != pkg.url_for_version(
+            Version(v_match.group(3))
+        ):
             print(
                 *v_match.group(1, 2, 3, 4),
                 ",\n",
