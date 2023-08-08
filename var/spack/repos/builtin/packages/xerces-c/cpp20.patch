@@ -1,0 +1,11 @@
+--- xerces-c-3.2.3/tests/src/Char16Test/Char16Test.cpp.orig	2023-05-24 11:38:08.161413140 -0500
++++ xerces-c-3.2.3/tests/src/Char16Test/Char16Test.cpp	2023-05-24 11:38:29.298251590 -0500
+@@ -44,7 +44,7 @@
+     catch (const xercesc::XMLException& toCatch)
+     {
+       std::cerr << "Error during initialization of xerces-c: "
+-                << toCatch.getMessage()
++                << reinterpret_cast<const char*>(toCatch.getMessage())
+                 << std::endl;
+         return 1;
+     }
