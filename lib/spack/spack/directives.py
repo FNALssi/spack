@@ -565,7 +565,7 @@ def depends_on(spec, when=None, type=default_deptype, patches=None, version_tran
                             constrained_spec,
                             when=f"@{pkg_version} {when}" if when else f"@{pkg_version}",
                             type=type,
-                            patches=patches
+                            patches=patches,
                         )
                         executed = True
 
