@@ -2879,7 +2879,13 @@ class Spec:
             if dspec.spec.concrete:
                 continue
 
-            pkg_deps = dspec.parent.package_class.dependencies
+            try:
+                pkg_deps = dspec.parent.package_class.dependencies
+            except UnknownPackageError:
+                # don't blow up if there is a package in the buildcache we do not have
+                # a recipe for -- mengel
+                continue
+  
             if dspec.spec.name not in pkg_deps:
                 continue
 
