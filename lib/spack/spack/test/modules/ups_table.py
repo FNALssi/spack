@@ -67,7 +67,9 @@ class TestUpsTable(object):
         assert len([x for x in content if "FILE = Table" in x]) == 1
         assert len([x for x in content if "setupRequired" in x]) == 3
 
-    def test_prerequisites_direct(self, modulefile_content, module_configuration):
+    def test_prerequisites_direct(
+            self, modulefile_content, module_configuration
+    ):
         """Tests asking direct dependencies as prerequisites."""
 
         module_configuration("prerequisites_direct")
@@ -89,15 +91,25 @@ class TestUpsTable(object):
         module_configuration("alter_environment")
         content = modulefile_content("mpileaks platform=test target=x86_64")
 
-        assert len([x for x in content if x.startswith("PathPrepend(CMAKE_PREFIX_PATH")]) == 0
+        assert len([x for x in content
+                    if x.startswith("PathPrepend(CMAKE_PREFIX_PATH")
+                    ]) == 0
         assert len([x for x in content if 'EnvSet(FOO, "foo"' in x]) == 1
-        assert len([x for x in content if 'EnvSet(OMPI_MCA_mpi_leave_pinned, "1"' in x]) == 1
-        assert len([x for x in content if 'EnvSet(OMPI_MCA_MPI_LEAVE_PINNED, "1"' in x]) == 0
+        assert len([
+            x for x in content if 'EnvSet(OMPI_MCA_mpi_leave_pinned, "1"' in x
+        ]) == 1
+        assert len([
+            x for x in content if 'EnvSet(OMPI_MCA_MPI_LEAVE_PINNED, "1"' in x
+        ]) == 0
         assert len([x for x in content if "EnvSet(MPILEAKS_ROOT" in x]) == 1
 
-        content = modulefile_content("libdwarf %clang platform=test target=x86_32")
+        content = modulefile_content(
+            "libdwarf %clang platform=test target=x86_32"
+        )
 
-        assert len([x for x in content if x.startswith("PathPrepend(CMAKE_PREFIX_PATH")]) == 0
+        assert len([x for x in content
+                    if x.startswith("PathPrepend(CMAKE_PREFIX_PATH")
+                    ]) == 0
         assert len([x for x in content if 'EnvSet(FOO, "foo"' in x]) == 0
         assert len([x for x in content if "unEnvSet(BAR" in x]) == 0
         assert len([x for x in content if "FILE = Table" in x]) == 1
@@ -152,7 +164,8 @@ class TestUpsTable(object):
         with pytest.raises(RuntimeError):
             writer.write()
 
-    def test_module_index(self, module_configuration, factory, tmpdir_factory):
+    def test_module_index(
+            self, module_configuration, factory, tmpdir_factory):
         module_configuration("suffix")
 
         w1, s1 = factory("mpileaks")
@@ -191,9 +204,13 @@ class TestUpsTable(object):
         content = modulefile_content(str(spec["callpath"]))
 
         assert len([x for x in content if "EnvSet(FOOBAR" in x]) == 1
-        assert len([x for x in content if 'EnvSet(FOOBAR, "callpath"' in x]) == 1
+        assert len(
+            [x for x in content if 'EnvSet(FOOBAR, "callpath"' in x]
+        ) == 1
 
-    def test_override_template_in_package(self, modulefile_content, module_configuration):
+    def test_override_template_in_package(
+            self, modulefile_content, module_configuration
+    ):
         """Tests overriding a template from and attribute in the package."""
 
         module_configuration("autoload_direct")
@@ -201,7 +218,9 @@ class TestUpsTable(object):
 
         assert "PRODUCT = override-module-templates" in content
 
-    def test_override_template_in_modules_yaml(self, modulefile_content, module_configuration):
+    def test_override_template_in_modules_yaml(
+            self, modulefile_content, module_configuration
+    ):
         """Tests overriding a template from `modules.yaml`"""
         module_configuration("override_template")
 
@@ -213,7 +232,9 @@ class TestUpsTable(object):
 
     @pytest.mark.regression("4400")
     @pytest.mark.db
-    def test_blacklist_implicits(self, modulefile_content, module_configuration, database):
+    def test_blacklist_implicits(
+            self, modulefile_content, module_configuration, database
+    ):
         module_configuration("blacklist_implicits")
 
         # mpileaks has been installed explicitly when setting up
@@ -232,7 +253,9 @@ class TestUpsTable(object):
 
     @pytest.mark.regression("9624")
     @pytest.mark.db
-    def test_autoload_with_constraints(self, modulefile_content, module_configuration, database):
+    def test_autoload_with_constraints(
+            self, modulefile_content, module_configuration, database
+    ):
         """Tests the automatic loading of direct dependencies."""
 
         module_configuration("autoload_with_constraints")

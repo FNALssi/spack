@@ -65,7 +65,9 @@ class TestTcl(object):
 
         assert len([x for x in content if "FILE = version" in x]) == 1
 
-    def test_prerequisites_direct(self, modulefile_content, module_configuration):
+    def test_prerequisites_direct(
+            self, modulefile_content, module_configuration
+    ):
         """Tests asking direct dependencies as prerequisites."""
 
         module_configuration("prerequisites_direct")
@@ -88,7 +90,9 @@ class TestTcl(object):
         content = modulefile_content("mpileaks platform=test target=x86_64")
         assert len([x for x in content if "FILE = version" in x]) == 1
 
-        content = modulefile_content("libdwarf %clang platform=test target=x86_32")
+        content = modulefile_content(
+            "libdwarf %clang platform=test target=x86_32"
+        )
         assert len([x for x in content if "FILE = version" in x]) == 1
 
     def test_blacklist(self, modulefile_content, module_configuration):
@@ -140,7 +144,8 @@ class TestTcl(object):
         with pytest.raises(RuntimeError):
             writer.write()
 
-    def test_module_index(self, module_configuration, factory, tmpdir_factory):
+    def test_module_index(
+            self, module_configuration, factory, tmpdir_factory):
         module_configuration("suffix")
 
         w1, s1 = factory("mpileaks")
@@ -172,7 +177,9 @@ class TestTcl(object):
         spec = spack.spec.Spec("mpileaks")
         spec.concretize()
 
-    def test_override_template_in_modules_yaml(self, modulefile_content, module_configuration):
+    def test_override_template_in_modules_yaml(
+            self, modulefile_content, module_configuration
+    ):
         """Tests overriding a template from `modules.yaml`"""
         module_configuration("override_template")
 
@@ -182,7 +189,9 @@ class TestTcl(object):
         content = modulefile_content("mpileaks arch=x86-linux")
         assert "Override even better!" in content
 
-    def test_extend_context(self, modulefile_content, module_configuration):
+    def test_extend_context(
+            self, modulefile_content, module_configuration
+    ):
         """Tests using a package defined context"""
         module_configuration("autoload_direct")
         content = modulefile_content("override-context-templates")
@@ -191,7 +200,9 @@ class TestTcl(object):
 
     @pytest.mark.regression("9624")
     @pytest.mark.db
-    def test_autoload_with_constraints(self, modulefile_content, module_configuration, database):
+    def test_autoload_with_constraints(
+            self, modulefile_content, module_configuration, database
+    ):
         """Tests the automatic loading of direct dependencies."""
 
         module_configuration("autoload_with_constraints")

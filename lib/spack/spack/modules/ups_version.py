@@ -38,7 +38,7 @@ def make_configuration(spec, module_set_name, explicit):
         return configuration_registry[key]
     except KeyError:
         return configuration_registry.setdefault(
-            key, UpsVersionConfiguration(spec, module_set_name)
+            key, UpsVersionConfiguration(spec, module_set_name, explicit)
         )
 
 
@@ -96,7 +96,9 @@ class UpsVersionContext(BaseContext):
         for item in self.conf.conflicts:
             naming_scheme = self.conf["naming_scheme"]
             if len([x for x in f.parse(item)]) > 1:
-                for naming_dir, conflict_dir in zip(naming_scheme.split("/"), item.split("/")):
+                for naming_dir, conflict_dir in zip(
+                    naming_scheme.split("/"), item.split("/")
+                ):
                     if naming_dir != conflict_dir:
                         message = "conflict scheme does not match naming "
                         message += "scheme [{spec}]\n\n"
@@ -105,7 +107,9 @@ class UpsVersionContext(BaseContext):
                         message += "** You may want to check your "
                         message += "`modules.yaml` configuration file **\n"
                         tty.error(
-                            message.format(spec=self.spec, nformat=naming_scheme, cformat=item)
+                            message.format(
+                                spec=self.spec, nformat=naming_scheme, cformat=item
+                            )
                         )
                         raise SystemExit("Module generation aborted.")
                 item = self.spec.format(item)

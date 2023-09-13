@@ -678,7 +678,7 @@ class EnvironmentModifications:
             separator: separator for the paths (default: os.pathsep)
         """
         item = DeprioritizeSystemPaths(
-            name, separator=separator, trace=self._trace(), target=target
+            name, separator=separator, trace=self._trace(), target=target,
         )
         self.env_modifications.append(item)
 
