@@ -110,12 +110,17 @@ module_config_properties = {
     "arch_folder": {"type": "boolean"},
     "roots": {
         "type": "object",
-        "properties": {"tcl": {"type": "string"}, "lmod": {"type": "string"}},
+        "properties": {
+           "tcl": {"type": "string"},
+           "lmod": {"type": "string"},
+           "ups_table": {"type": "string"},
+           "ups_version": {"type": "string"},
+        },
     },
     "enable": {
         "type": "array",
         "default": [],
-        "items": {"type": "string", "enum": ["tcl", "lmod"]},
+        "items": {"type": "string", "enum": ["tcl", "lmod","ups_table","ups_version"]},
     },
     "lmod": {
         "allOf": [
@@ -140,6 +145,27 @@ module_config_properties = {
             # Base configuration
             module_type_configuration,
             {},  # Specific tcl extensions
+        ]
+    },
+    'dotkit': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
+        ]
+    },
+    'ups_table': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
+        ]
+    },
+    'ups_version': {
+        'allOf': [
+            # Base configuration
+            module_type_configuration,
+            {}  # Specific dotkit extensions
         ]
     },
     "prefix_inspections": {
