@@ -233,6 +233,9 @@ class Root(CMakePackage):
     depends_on("libxft", when="+x")
     depends_on("libxpm", when="+x")
     depends_on("libsm", when="+x")
+    depends_on("fontconfig", when="+x", type="build")
+    depends_on("xproto", when="+x", type="build")
+    depends_on("xextproto", when="+x", type="build")
 
     # OpenGL
     depends_on("ftgl@2.4.0:", when="+opengl")
@@ -318,6 +321,7 @@ class Root(CMakePackage):
     conflicts("+math", when="~gsl", msg="root+math requires GSL")
     conflicts("+tmva", when="~gsl", msg="root+tmva requires GSL")
     conflicts("+tmva", when="~mlp", msg="root+tmva requires MLP")
+    conflicts("~http", when="@6.29.00: +webgui", msg="root+webgui requires HTTP")
     conflicts("cxxstd=11", when="+root7", msg="root7 requires at least C++14")
     conflicts("cxxstd=11", when="@6.25.02:", msg="This version of root requires at least C++14")
     conflicts(
@@ -447,7 +451,6 @@ class Root(CMakePackage):
 
         # Options controlling gross build / config behavior.
         options += [
-            define("cxxmodules", False),
             define("exceptions", True),
             define("explicitlink", True),
             define("fail-on-missing", True),
@@ -467,6 +470,9 @@ class Root(CMakePackage):
             # it was compiled with at run time; see #17488, #18078 and #23886
             define("CLING_CXX_PATH", self.compiler.cxx),
         ]
+
+        if self.spec.satisfies("@:6.28.99"):
+            options.append(define("cxxmodules", False))
 
         # Options related to ROOT's ability to download and build its own
         # dependencies. Per Spack convention, this should generally be avoided.
@@ -634,7 +640,7 @@ class Root(CMakePackage):
 
         # With that done, let's go fixing those deps
         if spec.satisfies("@:6.12"):
-            add_include_path("zlib-api")
+            add_include_path("zlib")
         if "+x" in spec:
             if spec.satisfies("@:6.08") or spec.satisfies("@6.22:"):
                 add_include_path("xextproto")
@@ -649,6 +655,8 @@ class Root(CMakePackage):
             # override with an empty value even though it may lead to link
             # warnings when building against ROOT
             env.unset("MACOSX_DEPLOYMENT_TARGET")
+        # Cleanup.
+        self.sanitize_environments(env)
 
     def setup_run_environment(self, env):
         env.set("ROOTSYS", self.prefix)
@@ -657,8 +665,12 @@ class Root(CMakePackage):
         # the following vars are copied from thisroot.sh; silence a cppyy warning
         env.set("CLING_STANDARD_PCH", "none")
         env.set("CPPYY_API_PATH", "none")
+        # Cleanup.
+        self.sanitize_environments(env)
 
-    def setup_dependent_build_environment(self, env, dependent_spec):
+    def setup_dependent_build_environment(
+        self, env: spack.util.environment.EnvironmentModifications, dependent_spec
+    ):
         env.set("ROOTSYS", self.prefix)
         env.set("ROOT_VERSION", "v{0}".format(self.version.up_to(1)))
         env.prepend_path("PYTHONPATH", self.prefix.lib.root)
@@ -670,8 +682,12 @@ class Root(CMakePackage):
         if "platform=darwin" in self.spec:
             # Newer deployment targets cause fatal errors in rootcling
             env.unset("MACOSX_DEPLOYMENT_TARGET")
+        # Cleanup.
+        self.sanitize_environments(env)
 
-    def setup_dependent_run_environment(self, env, dependent_spec):
+    def setup_dependent_run_environment(
+        self, env: spack.util.environment.EnvironmentModifications, dependent_spec
+    ):
         env.set("ROOTSYS", self.prefix)
         env.set("ROOT_VERSION", "v{0}".format(self.version.up_to(1)))
         env.prepend_path("PYTHONPATH", self.prefix.lib.root)
@@ -679,3 +695,28 @@ class Root(CMakePackage):
         env.prepend_path("ROOT_INCLUDE_PATH", dependent_spec.prefix.include)
         if "+rpath" not in self.spec:
             env.prepend_path("LD_LIBRARY_PATH", self.prefix.lib.root)
+        # Cleanup.
+        self.sanitize_environments(env)
+
+    def sanitize_environments(self, env: spack.util.environment.EnvironmentModifications, *vars):
+        target = self.spec.target
+        special_separators = {"LDSHARED": " -L"}
+        if not vars:
+            vars = (
+                "PATH",
+                "LDSHARED",
+                "LD_LIBRARY_PATH",
+                "DYLD_LIBRARY_PATH",
+                "LIBRARY_PATH",
+                "CMAKE_PREFIX_PATH",
+                "ROOT_INCLUDE_PATH",
+            )
+        for var in vars:
+            kwargs = {}
+            if var in special_separators:
+                kwargs["separator"] = special_separators[var]
+            env.prune_duplicate_paths(var, **kwargs)
+            if var == "PATH":
+                env.deprioritize_system_paths(var, target=target, **kwargs)
+            else:
+                env.remove_system_paths(var, **kwargs)
