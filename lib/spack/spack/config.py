@@ -154,7 +154,10 @@ class ConfigScope:
             with open(filename, "w") as f:
                 syaml.dump_config(data, stream=f, default_flow_style=False)
         except (syaml.SpackYAMLError, IOError) as e:
-            raise ConfigFileError(f"cannot write to '{filename}'") from e
+            if hasattr(e, 'errno') and e.errno in [13,30]:
+                tty.warn("Ignoring write error on readonly %s" % filename)
+            else:   
+                raise ConfigFileError(f"cannot write to '{filename}'") from e
 
     def clear(self):
         """Empty cached config information."""
