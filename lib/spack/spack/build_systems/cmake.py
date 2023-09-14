@@ -18,6 +18,7 @@ import spack.builder
 import spack.package_base
 from spack.directives import build_system, conflicts, depends_on, variant
 from spack.multimethod import when
+import archspec.cpu
 
 from ._checks import BaseBuilder, execute_build_time_tests
 
@@ -249,6 +250,7 @@ class CMakeBuilder(BaseBuilder):
     def std_args(pkg, generator=None):
         """Computes the standard cmake arguments for a generic package"""
         default_generator = "Ninja" if sys.platform == "win32" else "Unix Makefiles"
+            
         generator = generator or default_generator
         valid_primary_generators = ["Unix Makefiles", "Ninja"]
         primary_generator = _extract_primary_generator(generator)
@@ -275,6 +277,10 @@ class CMakeBuilder(BaseBuilder):
             define("CMAKE_INSTALL_PREFIX", pathlib.Path(pkg.prefix).as_posix()),
             define("CMAKE_BUILD_TYPE", build_type),
         ]
+
+        # if we're building for a 64 bit system, prefer lib64 paths
+        if str(archspec.cpu.host().generic).find("_64_") > 0: 
+            args.append(define('FIND_LIBRARY_USE_LIB64_PATHS', True))
 
         # CMAKE_INTERPROCEDURAL_OPTIMIZATION only exists for CMake >= 3.9
         if pkg.spec.satisfies("^cmake@3.9:"):
