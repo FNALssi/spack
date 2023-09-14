@@ -22,6 +22,7 @@ from llnl.util.lang import dedupe
 
 import spack.platforms
 import spack.spec
+import spack.target
 
 from .executable import Executable, which
 from .path import path_to_os_path, system_path_filter
@@ -438,7 +439,26 @@ class RemovePath(NameValueModifier):
         env[self.name] = self.separator.join(directories)
 
 
+class RemoveSystemPaths(NameModifier):
+    def execute(self, env: MutableMapping[str, str]):
+        tty.debug(f"RemoveSystemPaths: {self.name}", level=3)
+        environment_value = env.get(self.name, "")
+        directories = environment_value.split(self.separator) if environment_value else []
+        directories = filter_system_paths(
+            [path_to_os_path(os.path.normpath(x)).pop() for x in directories]
+        )
+        env[self.name] = self.separator.join(directories)
+
+
 class DeprioritizeSystemPaths(NameModifier):
+    __slots__ = ("target",)
+
+    def __init__(
+            self, name: str, *, separator: str = os.pathsep, trace: Optional[Trace] = None, target: Optional[Union[str, spack.target.Target]] = None
+    ):
+        super().__init__(name, separator=separator, trace=trace)
+        self.target = target
+
     def execute(self, env: MutableMapping[str, str]):
         tty.debug(f"DeprioritizeSystemPaths: {self.name}", level=3)
         environment_value = env.get(self.name, "")
@@ -608,7 +628,18 @@ class EnvironmentModifications:
         self.env_modifications.append(item)
 
     @system_env_normalize
-    def deprioritize_system_paths(self, name: str, separator: str = os.pathsep):
+    def remove_system_paths(self, name: str, separator: str = os.pathsep):
+        """Stores a request to remove system paths from a list of paths.
+
+        Args:
+            name: name of the environment variable
+            separator: separator for the paths (default: os.pathsep)
+        """
+        item = RemoveSystemPaths(name, separator=separator, trace=self._trace())
+        self.env_modifications.append(item)
+
+    @system_env_normalize
+    def deprioritize_system_paths(self, name: str, separator: str = os.pathsep, target: Optional[Union[str, spack.target.Target]] = None):
         """Stores a request to deprioritize system paths in a path list,
         otherwise preserving the order.
 
@@ -616,7 +647,7 @@ class EnvironmentModifications:
             name: name of the environment variable
             separator: separator for the paths (default: os.pathsep)
         """
-        item = DeprioritizeSystemPaths(name, separator=separator, trace=self._trace())
+        item = DeprioritizeSystemPaths(name, separator=separator, trace=self._trace(), target=target)
         self.env_modifications.append(item)
 
     @system_env_normalize
