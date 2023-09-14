@@ -137,7 +137,6 @@ class Glib(MesonPackage, AutotoolsPackage):
     depends_on("pkgconfig", type="build")
     depends_on("libffi")
     depends_on("zlib-api")
-    depends_on("gettext")
     depends_on("perl", type=("build", "run"))
     depends_on("python", type=("build", "run"), when="@2.53.4:")
     depends_on("pcre2", when="@2.73.2:")
@@ -302,7 +301,11 @@ class MesonBuilder(BaseBuilder, spack.build_systems.meson.MesonBuilder):
 
         # arguments for older versions
         if self.spec.satisfies("@:2.72"):
-            args.append("-Dgettext=external")
+            if self.spec["iconv"].name == "libc":
+                args.append("-Dgettext=libc")
+            else:
+                args.append("-Dgettext=external")
+            
         if self.spec.satisfies("@:2.74"):
             if self.spec["iconv"].name == "libc":
                 args.append("-Diconv=libc")
