@@ -25,8 +25,8 @@ QUALIFIERS=""
 
 
 {%set spack_root = os.environ['SPACK_ROOT'] %}
-{%set install_root =  spack_root[0:spack_root.find('/spack/')] %}
-{%if spec.prefix.starts_with(install_root) %}
+{%set install_root = spack_root[0:spack_root.find('/spack/')] %}
+{%if spec.prefix.startswith(install_root) %}
 
 Action = setup
     prodDir()
