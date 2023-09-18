@@ -37,6 +37,7 @@ class Libarchive(AutotoolsPackage):
         sha256="fcf87f3ad8db2e4f74f32526dee62dd1fb9894782b0a503a89c9d7a70a235191",
         deprecated=True,
     )
+    version("3.3.3", sha256="ba7eb1781c9fbbae178c4c6bad1c6eb08edab9a1496c64833d1715d022b30e2e") # FIX ME
     version(
         "3.3.2",
         sha256="ed2dbd6954792b2c054ccf8ec4b330a54b85904a80cef477a1c74643ddafa0ce",
