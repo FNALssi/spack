@@ -16,6 +16,7 @@ class Catch2(CMakePackage):
     maintainers("ax3l", "AndrewGaspar")
 
     # In-Development
+
     version("develop", branch="devel")
 
     # Releases

@@ -17,11 +17,13 @@ class Xrootd(CMakePackage):
 
     maintainers("gartung", "greenc-FNAL", "marcmengel", "vitodb", "wdconinc")
 
+
     version("5.5.5", sha256="0710caae527082e73d3bf8f9d1dffe95808afd3fcaaaa15ab0b937b8b226bc1f")
     version("5.5.4", sha256="41a8557ea2d118b1950282b17abea9230b252aa5ee1a5959173e2534b7d611d3")
     version("5.5.3", sha256="703829c2460204bd3c7ba8eaa23911c3c9a310f6d436211ba0af487ef7f6a980")
     version("5.5.2", sha256="ec4e0490b8ee6a3254a4ea4449342aa364bc95b78dc9a8669151be30353863c6")
     version("5.5.1", sha256="3556d5afcae20ed9a12c89229d515492f6c6f94f829a3d537f5880fcd2fa77e4")
+    version("5.4.3", sha256="2d58210161ef61fabad7c86a038f2ef71c2ba1a0e782fcb6b8c92a1ba5f2a2b3")
     version("5.3.2", sha256="e8371fb9e86769bece74b9b9d67cb695023cd6a20a1199386fddd9ed840b0875")
     version("5.3.1", sha256="7ea3a112ae9d8915eb3a06616141e5a0ee366ce9a5e4d92407b846b37704ee98")
     version("5.1.0", sha256="c639536f1bdc5b6b365e807f3337ed2d41012cd3df608d40e91ed05f1c568b6d")

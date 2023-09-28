@@ -135,6 +135,7 @@ class Mysql(CMakePackage):
     depends_on("cyrus-sasl", when="@:5.7")
 
     patch("fix-no-server-5.5.patch", level=1, when="@5.5.0:5.5")
+    patch("missing_include.patch",  when="@8:")
 
     @property
     def command(self):
@@ -194,5 +195,5 @@ class Mysql(CMakePackage):
             if int(cxxstd) > 14:
                 env.append_flags("CXXFLAGS", "-Wno-error=register")
 
-        if "python" in self.spec.flat_dependencies() and self.spec.satisfies("@:7"):
+        if self.spec.satisfies("@:7") and  "python" in self.spec.flat_dependencies():
             self._fix_dtrace_shebang(env)
