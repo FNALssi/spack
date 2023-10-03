@@ -55,8 +55,9 @@ class PyGrpcio(PythonPackage):
 
         for dep in self.spec.dependencies(deptype="link"):
             query = self.spec[dep.name]
-            env.prepend_path("LIBRARY_PATH", query.libs.directories[0])
-            env.prepend_path("CPATH", query.headers.directories[0])
+            if query.libs.directories:
+                env.prepend_path("LIBRARY_PATH", query.libs.directories[0])
+                env.prepend_path("CPATH", query.headers.directories[0])
 
     def patch(self):
         filter_file("-std=gnu99", "", "setup.py")
