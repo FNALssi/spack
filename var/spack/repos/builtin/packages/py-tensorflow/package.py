@@ -871,7 +871,7 @@ class PyTensorflow(Package, CudaPackage, ROCmPackage, PythonExtension):
                 "tensorflow/tools/pip_package/setup.py",
             )
             filter_file(
-                "REQUIRED_PACKAGES\[i\] = 'tensorflow-estimator-2.0-preview",
+                r"REQUIRED_PACKAGES\[i\] = 'tensorflow-estimator-2.0-preview",
                 r"pass #REQUIRED_PACKAGES[i] = 'tensorflow-estimator-2.0-preview",
                 "tensorflow/tools/pip_package/setup.py",
             )
