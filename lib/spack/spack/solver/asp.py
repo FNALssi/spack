@@ -13,7 +13,7 @@ import pprint
 import re
 import types
 import warnings
-from typing import List, NamedTuple, Tuple, Union
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple, Union
 
 import archspec.cpu
 
@@ -138,7 +138,15 @@ class RequirementKind(enum.Enum):
     PACKAGE = enum.auto()
 
 
-DeclaredVersion = collections.namedtuple("DeclaredVersion", ["version", "idx", "origin"])
+class DeclaredVersion(NamedTuple):
+    """Data class to contain information on declared versions used in the solve"""
+
+    #: String representation of the version
+    version: str
+    #: Unique index assigned to this version
+    idx: int
+    #: Provenance of the version
+    origin: Provenance
 
 
 # Below numbers are used to map names of criteria to the order
@@ -785,7 +793,7 @@ class PyclingoDriver:
         if choice:
             self.assumptions.append(atom)
 
-    def solve(self, setup, specs, reuse=None, output=None, control=None):
+    def solve(self, setup, specs, reuse=None, output=None, control=None, allow_deprecated=False):
         """Set up the input and solve for dependencies of ``specs``.
 
         Arguments:
@@ -796,6 +804,7 @@ class PyclingoDriver:
                 the output of this solve.
             control (clingo.Control): configuration for the solver. If None,
                 default values will be used
+            allow_deprecated: if True, allow deprecated versions in the solve
 
         Return:
             A tuple of the solve result, the timer for the different phases of the
@@ -815,7 +824,7 @@ class PyclingoDriver:
         timer.start("setup")
         with self.control.backend() as backend:
             self.backend = backend
-            setup.setup(self, specs, reuse=reuse)
+            setup.setup(self, specs, reuse=reuse, allow_deprecated=allow_deprecated)
         timer.stop("setup")
 
         timer.start("load")
@@ -962,6 +971,70 @@ class PyclingoDriver:
         return cycle_result.unsatisfiable
 
 
+class ConcreteSpecsByHash(collections.abc.Mapping):
+    """Mapping containing concrete specs keyed by DAG hash.
+
+    The mapping is ensured to be consistent, i.e. if a spec in the mapping has a dependency with
+    hash X, it is ensured to be the same object in memory as the spec keyed by X.
+    """
+
+    def __init__(self) -> None:
+        self.data: Dict[str, spack.spec.Spec] = {}
+
+    def __getitem__(self, dag_hash: str) -> spack.spec.Spec:
+        return self.data[dag_hash]
+
+    def add(self, spec: spack.spec.Spec) -> bool:
+        """Adds a new concrete spec to the mapping. Returns True if the spec was just added,
+        False if the spec was already in the mapping.
+
+        Args:
+            spec: spec to be added
+
+        Raises:
+            ValueError: if the spec is not concrete
+        """
+        if not spec.concrete:
+            msg = (
+                f"trying to store the non-concrete spec '{spec}' in a container "
+                f"that only accepts concrete"
+            )
+            raise ValueError(msg)
+
+        dag_hash = spec.dag_hash()
+        if dag_hash in self.data:
+            return False
+
+        # Here we need to iterate on the input and rewire the copy.
+        self.data[spec.dag_hash()] = spec.copy(deps=False)
+        nodes_to_reconstruct = [spec]
+
+        while nodes_to_reconstruct:
+            input_parent = nodes_to_reconstruct.pop()
+            container_parent = self.data[input_parent.dag_hash()]
+
+            for edge in input_parent.edges_to_dependencies():
+                input_child = edge.spec
+                container_child = self.data.get(input_child.dag_hash())
+                # Copy children that don't exist yet
+                if container_child is None:
+                    container_child = input_child.copy(deps=False)
+                    self.data[input_child.dag_hash()] = container_child
+                    nodes_to_reconstruct.append(input_child)
+
+                # Rewire edges
+                container_parent.add_dependency_edge(
+                    dependency_spec=container_child, depflag=edge.depflag, virtuals=edge.virtuals
+                )
+        return True
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+
 class SpackSolverSetup:
     """Class to set up and run a Spack concretization solve."""
 
@@ -985,9 +1058,7 @@ class SpackSolverSetup:
         # (ID, CompilerSpec) -> dictionary of attributes
         self.compiler_info = collections.defaultdict(dict)
 
-        # hashes we've already added facts for
-        self.seen_hashes = set()
-        self.reusable_and_possible = {}
+        self.reusable_and_possible = ConcreteSpecsByHash()
 
         # id for dummy variables
         self._condition_id_counter = itertools.count()
@@ -1560,7 +1631,9 @@ class SpackSolverSetup:
                     )
                 except Exception as e:
                     if rule.kind != RequirementKind.DEFAULT:
-                        raise RuntimeError("cannot emit requirements for the solver:" + str(e)) from e
+                        raise RuntimeError(
+                            "cannot emit requirements for the solver: " + str(e)
+                        ) from e
                     continue
 
                 self.gen.fact(
@@ -1592,7 +1665,9 @@ class SpackSolverSetup:
                     # would be impaired. If a rule does not apply for a specific package, just
                     # discard it.
                     if rule.kind != RequirementKind.DEFAULT:
-                        raise RuntimeError("cannot emit requirements for the solver:" + str(e)) from e
+                        raise RuntimeError(
+                            "cannot emit requirements for the solver: " + str(e)
+                        ) from e
                     continue
 
                 self.gen.fact(fn.requirement_group_member(member_id, pkg_name, requirement_grp_id))
@@ -1870,7 +1945,11 @@ class SpackSolverSetup:
                             continue
                         # skip build dependencies of already-installed specs
                         if concrete_build_deps or dtype != dt.BUILD:
-                            clauses.append(fn.attr("depends_on", spec.name, dep.name, dtype))
+                            clauses.append(
+                                fn.attr(
+                                    "depends_on", spec.name, dep.name, dt.flag_to_string(dtype)
+                                )
+                            )
                             for virtual_name in dspec.virtuals:
                                 clauses.append(
                                     fn.attr("virtual_on_edge", spec.name, dep.name, virtual_name)
@@ -1898,7 +1977,7 @@ class SpackSolverSetup:
         return clauses
 
     def define_package_versions_and_validate_preferences(
-        self, possible_pkgs, require_checksum: bool
+        self, possible_pkgs, *, require_checksum: bool, allow_deprecated: bool
     ):
         """Declare any versions in specs not declared in packages."""
         packages_yaml = spack.config.get("packages")
@@ -1918,13 +1997,15 @@ class SpackSolverSetup:
                 ]
 
             for idx, (v, version_info) in enumerate(package_py_versions):
+                if version_info.get("deprecated", False):
+                    self.deprecated_versions[pkg_name].add(v)
+                    if not allow_deprecated:
+                        continue
+
                 self.possible_versions[pkg_name].add(v)
                 self.declared_versions[pkg_name].append(
                     DeclaredVersion(version=v, idx=idx, origin=Provenance.PACKAGE_PY)
                 )
-                deprecated = version_info.get("deprecated", False)
-                if deprecated:
-                    self.deprecated_versions[pkg_name].add(v)
 
             if pkg_name not in packages_yaml or "version" not in packages_yaml[pkg_name]:
                 continue
@@ -1953,7 +2034,9 @@ class SpackSolverSetup:
                 )
                 self.possible_versions[pkg_name].add(vdef)
 
-    def define_ad_hoc_versions_from_specs(self, specs, origin, require_checksum: bool):
+    def define_ad_hoc_versions_from_specs(
+        self, specs, origin, *, allow_deprecated: bool, require_checksum: bool
+    ):
         """Add concrete versions to possible versions from lists of CLI/dev specs."""
         for s in traverse.traverse_nodes(specs):
             # If there is a concrete version on the CLI *that we know nothing
@@ -1968,6 +2051,9 @@ class SpackSolverSetup:
                 raise UnsatisfiableSpecError(
                     s.format("No matching version for constraint {name}{@versions}")
                 )
+
+            if not allow_deprecated and version in self.deprecated_versions[s.name]:
+                continue
 
             declared = DeclaredVersion(version=version, idx=0, origin=origin)
             self.declared_versions[s.name].append(declared)
@@ -2294,25 +2380,29 @@ class SpackSolverSetup:
         for pkg, variant, value in self.variant_values_from_specs:
             self.gen.fact(fn.pkg_fact(pkg, fn.variant_possible_value(variant, value)))
 
-    def _facts_from_concrete_spec(self, spec, possible):
+    def register_concrete_spec(self, spec, possible):
         # tell the solver about any installed packages that could
         # be dependencies (don't tell it about the others)
-        h = spec.dag_hash()
-        if spec.name in possible and h not in self.seen_hashes:
-            self.reusable_and_possible[h] = spec
-            try:
-                # Only consider installed packages for repo we know
-                spack.repo.PATH.get(spec)
-            except (spack.repo.UnknownNamespaceError, spack.repo.UnknownPackageError):
-                return
+        if spec.name not in possible:
+            return
 
+        try:
+            # Only consider installed packages for repo we know
+            spack.repo.PATH.get(spec)
+        except (spack.repo.UnknownNamespaceError, spack.repo.UnknownPackageError) as e:
+            tty.debug(f"[REUSE] Issues when trying to reuse {spec.short_spec}: {str(e)}")
+            return
+
+        self.reusable_and_possible.add(spec)
+
+    def concrete_specs(self):
+        """Emit facts for reusable specs"""
+        for h, spec in self.reusable_and_possible.items():
             # this indicates that there is a spec like this installed
             self.gen.fact(fn.installed_hash(spec.name, h))
-
             # this describes what constraints it imposes on the solve
             self.impose(h, spec, body=True)
             self.gen.newline()
-
             # Declare as possible parts of specs that are not in package.py
             # - Add versions to possible versions
             # - Add OS to possible OS's
@@ -2323,17 +2413,21 @@ class SpackSolverSetup:
                 )
                 self.possible_oses.add(dep.os)
 
-            # add the hash to the one seen so far
-            self.seen_hashes.add(h)
-
     def define_concrete_input_specs(self, specs, possible):
         # any concrete specs in the input spec list
         for input_spec in specs:
             for spec in input_spec.traverse():
                 if spec.concrete:
-                    self._facts_from_concrete_spec(spec, possible)
+                    self.register_concrete_spec(spec, possible)
 
-    def setup(self, driver, specs, reuse=None):
+    def setup(
+        self,
+        driver: PyclingoDriver,
+        specs: Sequence[spack.spec.Spec],
+        *,
+        reuse: Optional[List[spack.spec.Spec]] = None,
+        allow_deprecated: bool = False,
+    ):
         """Generate an ASP program with relevant constraints for specs.
 
         This calls methods on the solve driver to set up the problem with
@@ -2341,9 +2435,10 @@ class SpackSolverSetup:
         specs, as well as constraints from the specs themselves.
 
         Arguments:
-            driver (PyclingoDriver): driver instance of this solve
-            specs (list): list of Specs to solve
-            reuse (None or list): list of concrete specs that can be reused
+            driver: driver instance of this solve
+            specs: list of Specs to solve
+            reuse: list of concrete specs that can be reused
+            allow_deprecated: if True adds deprecated versions into the solve
         """
         self._condition_id_counter = itertools.count()
 
@@ -2369,10 +2464,13 @@ class SpackSolverSetup:
         # rules to generate an ASP program.
         self.gen = driver
 
+        if not allow_deprecated:
+            self.gen.fact(fn.deprecated_versions_not_allowed())
+
         # Calculate develop specs
         # they will be used in addition to command line specs
         # in determining known versions/targets/os
-        dev_specs = ()
+        dev_specs: Tuple[spack.spec.Spec, ...] = ()
         env = ev.active_environment()
         if env:
             dev_specs = tuple(
@@ -2387,14 +2485,13 @@ class SpackSolverSetup:
         # get possible compilers
         self.possible_compilers = self.generate_possible_compilers(specs)
 
-        self.gen.h1("Concrete input spec definitions")
+        self.gen.h1("Reusable concrete specs")
         self.define_concrete_input_specs(specs, self.pkgs)
-
         if reuse:
-            self.gen.h1("Reusable specs")
             self.gen.fact(fn.optimize_for_reuse())
             for reusable_spec in reuse:
-                self._facts_from_concrete_spec(reusable_spec, self.pkgs)
+                self.register_concrete_spec(reusable_spec, self.pkgs)
+        self.concrete_specs()
 
         self.gen.h1("Generic statements on possible packages")
         node_counter.possible_packages_facts(self.gen, fn)
@@ -2418,11 +2515,22 @@ class SpackSolverSetup:
         self.external_packages()
 
         # TODO: make a config option for this undocumented feature
-        require_checksum = "SPACK_CONCRETIZER_REQUIRE_CHECKSUM" in os.environ
-        self.define_package_versions_and_validate_preferences(self.pkgs, require_checksum)
-        self.define_ad_hoc_versions_from_specs(specs, Provenance.SPEC, require_checksum)
-        self.define_ad_hoc_versions_from_specs(dev_specs, Provenance.DEV_SPEC, require_checksum)
-        self.validate_and_define_versions_from_requirements(require_checksum)
+        checksummed = "SPACK_CONCRETIZER_REQUIRE_CHECKSUM" in os.environ
+        self.define_package_versions_and_validate_preferences(
+            self.pkgs, allow_deprecated=allow_deprecated, require_checksum=checksummed
+        )
+        self.define_ad_hoc_versions_from_specs(
+            specs, Provenance.SPEC, allow_deprecated=allow_deprecated, require_checksum=checksummed
+        )
+        self.define_ad_hoc_versions_from_specs(
+            dev_specs,
+            Provenance.DEV_SPEC,
+            allow_deprecated=allow_deprecated,
+            require_checksum=checksummed,
+        )
+        self.validate_and_define_versions_from_requirements(
+            allow_deprecated=allow_deprecated, require_checksum=checksummed
+        )
 
         self.gen.h1("Package Constraints")
         for pkg in sorted(self.pkgs):
@@ -2471,7 +2579,9 @@ class SpackSolverSetup:
             if self.concretize_everything:
                 self.gen.fact(fn.solve_literal(idx))
 
-    def validate_and_define_versions_from_requirements(self, require_checksum: bool):
+    def validate_and_define_versions_from_requirements(
+        self, *, allow_deprecated: bool, require_checksum: bool
+    ):
         """If package requirements mention concrete versions that are not mentioned
         elsewhere, then we need to collect those to mark them as possible
         versions. If they are abstract and statically have no match, then we
@@ -2502,6 +2612,9 @@ class SpackSolverSetup:
                     continue
 
                 if v in self.possible_versions[name]:
+                    continue
+
+                if not allow_deprecated and v in self.deprecated_versions[name]:
                     continue
 
                 # If concrete an not yet defined, conditionally define it, like we do for specs
@@ -2548,6 +2661,7 @@ class SpecBuilder:
                 r"^node_compiler$",
                 r"^package_hash$",
                 r"^root$",
+                r"^variant_default_value_from_cli$",
                 r"^virtual_node$",
                 r"^virtual_root$",
             ]
@@ -2568,7 +2682,6 @@ class SpecBuilder:
         self._specs = {}
         self._result = None
         self._command_line_specs = specs
-        self._hash_specs = []
         self._flag_sources = collections.defaultdict(lambda: set())
         self._flag_compiler_defaults = set()
 
@@ -2579,7 +2692,6 @@ class SpecBuilder:
     def hash(self, node, h):
         if node not in self._specs:
             self._specs[node] = self._hash_lookup[h]
-        self._hash_specs.append(node)
 
     def node(self, node):
         if node not in self._specs:
@@ -2817,12 +2929,10 @@ class SpecBuilder:
         # fix flags after all specs are constructed
         self.reorder_flags()
 
-        # cycle detection
-        roots = [spec.root for spec in self._specs.values() if not spec.root.installed]
-
         # inject patches -- note that we' can't use set() to unique the
         # roots here, because the specs aren't complete, and the hash
         # function will loop forever.
+        roots = [spec.root for spec in self._specs.values() if not spec.root.installed]
         roots = dict((id(r), r) for r in roots)
         for root in roots.values():
             spack.spec.Spec.inject_patches_variant(root)
@@ -2973,7 +3083,16 @@ class Solver:
 
         return reusable_specs
 
-    def solve(self, specs, out=None, timers=False, stats=False, tests=False, setup_only=False):
+    def solve(
+        self,
+        specs,
+        out=None,
+        timers=False,
+        stats=False,
+        tests=False,
+        setup_only=False,
+        allow_deprecated=False,
+    ):
         """
         Arguments:
           specs (list): List of ``Spec`` objects to solve for.
@@ -2984,6 +3103,7 @@ class Solver:
             If a tuple of package names, concretize test dependencies for named
             packages (defaults to False: do not concretize test dependencies).
           setup_only (bool): if True, stop after setup and don't solve (default False).
+          allow_deprecated (bool): allow deprecated version in the solve
         """
         # Check upfront that the variants are admissible
         specs = [s.lookup_hash() for s in specs]
@@ -2991,10 +3111,14 @@ class Solver:
         reusable_specs.extend(self._reusable_specs(specs))
         setup = SpackSolverSetup(tests=tests)
         output = OutputConfiguration(timers=timers, stats=stats, out=out, setup_only=setup_only)
-        result, _, _ = self.driver.solve(setup, specs, reuse=reusable_specs, output=output)
+        result, _, _ = self.driver.solve(
+            setup, specs, reuse=reusable_specs, output=output, allow_deprecated=allow_deprecated
+        )
         return result
 
-    def solve_in_rounds(self, specs, out=None, timers=False, stats=False, tests=False):
+    def solve_in_rounds(
+        self, specs, out=None, timers=False, stats=False, tests=False, allow_deprecated=False
+    ):
         """Solve for a stable model of specs in multiple rounds.
 
         This relaxes the assumption of solve that everything must be consistent and
@@ -3009,6 +3133,7 @@ class Solver:
             timers (bool): print timing if set to True
             stats (bool): print internal statistics if set to True
             tests (bool): add test dependencies to the solve
+            allow_deprecated (bool): allow deprecated version in the solve
         """
         specs = [s.lookup_hash() for s in specs]
         reusable_specs = self._check_input_and_extract_concrete_specs(specs)
@@ -3022,7 +3147,11 @@ class Solver:
         output = OutputConfiguration(timers=timers, stats=stats, out=out, setup_only=False)
         while True:
             result, _, _ = self.driver.solve(
-                setup, input_specs, reuse=reusable_specs, output=output
+                setup,
+                input_specs,
+                reuse=reusable_specs,
+                output=output,
+                allow_deprecated=allow_deprecated,
             )
             yield result
 
