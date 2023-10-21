@@ -108,7 +108,6 @@ class Catch2(CMakePackage):
     version("1.3.0", sha256="245f6ee73e2fea66311afa1da59e5087ddab8b37ce64994ad88506e8af28c6ac")
 
     variant(
-<<<<<<< HEAD
         "cxxstd",
         when="@3:",
         default="17",
@@ -117,11 +116,10 @@ class Catch2(CMakePackage):
         sticky=True,
         description="C++ standard",
     )
-=======
+    variant(
         "pic", when="@3: ~shared", default=True, description="Build with position-independent code"
     )
     variant("shared", when="@3:", default=False, description="Build shared library")
->>>>>>> develop
 
     def cmake_args(self):
         spec = self.spec
