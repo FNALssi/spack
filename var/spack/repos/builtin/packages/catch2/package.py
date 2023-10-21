@@ -129,8 +129,9 @@ class Catch2(CMakePackage):
             args.append("-DNO_SELFTEST={0}".format("OFF" if self.run_tests else "ON"))
         elif spec.satisfies("@2.1.1:"):
             args.append(self.define("BUILD_TESTING", self.run_tests))
+            args.append(self.define_from_variant("CMAKE_POSITION_INDEPENDENT_CODE", "pic"))
+            args.append(self.define_from_variant("BUILD_SHARED_LIBS", "shared"))
         if spec.satisfies("@3:"):
-<<<<<<< HEAD
             args.extend([
                 self.define("BUILD_TESTING", self.run_tests),
                 self.define("CATCH_BUILD_EXAMPLES", True),
@@ -141,11 +142,7 @@ class Catch2(CMakePackage):
                 self.define_from_variant("CMAKE_CXX_STANDARD", "cxxstd"),
                 self.define("CMAKE_CXX_STANDARD_REQUIRED", True),
             ])
-=======
-            args.append(self.define_from_variant("CMAKE_POSITION_INDEPENDENT_CODE", "pic"))
-            args.append(self.define_from_variant("BUILD_SHARED_LIBS", "shared"))
 
->>>>>>> develop
         return args
 
     @when("@:1.6")
