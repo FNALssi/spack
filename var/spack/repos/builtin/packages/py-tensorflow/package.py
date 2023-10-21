@@ -144,6 +144,13 @@ class PyTensorflow(Package, CudaPackage, ROCmPackage, PythonExtension):
         default=sys.platform.startswith("linux"),
         description="Build kernels into separate shared objects",
     )
+    variant(
+        "cxxstd",
+        default="17",
+        values=("14", "17", "20"),
+        multi=False,
+        description="Use the specified C++ standard when building.",
+    )
 
     extends("python")
 
@@ -945,3 +952,8 @@ class PyTensorflow(Package, CudaPackage, ROCmPackage, PythonExtension):
             args = std_pip_args + ["--prefix=" + prefix, "."]
             pip(*args)
         remove_linked_tree(tmp_path)
+
+    def flag_handler(self, name, flags):
+        if name == "cxxflags" and self.spec.compiler.name in ["gcc","clang"]:
+            flags.append("-std=c++{0}".format(self.spec.variants["cxxstd"].value))
+        return (flags, None, None)
