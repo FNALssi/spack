@@ -21,6 +21,7 @@ class Catch2(CMakePackage):
     version("develop", branch="devel")
 
     # Releases
+    version("3.4.0", sha256="122928b814b75717316c71af69bd2b43387643ba076a6ec16e7882bfb2dfacbb")
     version("3.3.2", sha256="8361907f4d9bff3ae7c1edb027f813659f793053c99b67837a0c0375f065bae2")
     version("3.3.1", sha256="d90351cdc55421f640c553cfc0875a8c834428679444e8062e9187d05b18aace")
     version("3.3.0", sha256="fe2f29a54ca775c2dd04bb97ffb79d398e6210e3caa174348b5cd3b7e4ca887d")
@@ -115,6 +116,10 @@ class Catch2(CMakePackage):
         sticky=True,
         description="C++ standard",
     )
+    variant(
+        "pic", when="@3: ~shared", default=True, description="Build with position-independent code"
+    )
+    variant("shared", when="@3:", default=False, description="Build shared library")
 
     def cmake_args(self):
         spec = self.spec
@@ -124,6 +129,8 @@ class Catch2(CMakePackage):
             args.append("-DNO_SELFTEST={0}".format("OFF" if self.run_tests else "ON"))
         elif spec.satisfies("@2.1.1:"):
             args.append(self.define("BUILD_TESTING", self.run_tests))
+            args.append(self.define_from_variant("CMAKE_POSITION_INDEPENDENT_CODE", "pic"))
+            args.append(self.define_from_variant("BUILD_SHARED_LIBS", "shared"))
         if spec.satisfies("@3:"):
             args.extend([
                 self.define("BUILD_TESTING", self.run_tests),
@@ -135,6 +142,7 @@ class Catch2(CMakePackage):
                 self.define_from_variant("CMAKE_CXX_STANDARD", "cxxstd"),
                 self.define("CMAKE_CXX_STANDARD_REQUIRED", True),
             ])
+
         return args
 
     @when("@:1.6")
