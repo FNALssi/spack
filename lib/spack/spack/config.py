@@ -446,11 +446,8 @@ class Configuration:
         """Non-internal non-platform scope with highest precedence
 
         Platform-specific scopes are of the form scope/platform"""
-        generator = reversed(self.file_scopes)
-        highest = next(generator)
-        while highest and highest.is_platform_dependent:
-            highest = next(generator)
-        return highest
+        generator = self._non_platform_scopes
+        return next(generator)
 
     def matching_scopes(self, reg_expr) -> List[ConfigScope]:
         """
@@ -699,6 +696,15 @@ class Configuration:
             syaml.dump_config(data, stream=sys.stdout, default_flow_style=False, blame=blame)
         except (syaml.SpackYAMLError, IOError) as e:
             raise ConfigError(f"cannot read '{section}' configuration") from e
+
+    @property
+    def _non_platform_scopes(self):
+        """Returns non-platform scopes, highest priority first."""
+        for s in reversed(self.file_scopes):
+            if s.is_platform_dependent:
+                continue
+            else:
+                yield s
 
 
 @contextmanager
