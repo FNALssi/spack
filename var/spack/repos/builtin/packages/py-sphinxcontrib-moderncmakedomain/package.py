@@ -14,6 +14,7 @@ class PySphinxcontribModerncmakedomain(PythonPackage):
 
     maintainers("greenc-FNAL", "gartung", "marcmengel", "vitodb")
 
+    version("3.27.0", sha256="51e259e91f58d17cc0fac9307fd40106aa59d5acaa741887903fc3660361d1a1")
     version("3.25.0", sha256="4138e4d3f60e5c4b3982caa10033693bfc1009cdd851766754d5990d9d1e992a")
 
     conflicts("python@:3.5")
