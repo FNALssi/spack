@@ -7,9 +7,9 @@ from spack.package import *
 
 
 class PerlFileSharedir(PerlPackage):
-    """Locate per-dist and per-module shared files."""  # AUTO-CPAN2Spack
+    """File::ShareDir - Locate per-dist and per-module shared files"""
 
-    homepage = "https://metacpan.org/release/File-ShareDir"  # AUTO-CPAN2Spack
+    homepage = "https://metacpan.org/pod/File::ShareDir"
     url = "https://cpan.metacpan.org/authors/id/R/RE/REHSACK/File-ShareDir-1.118.tar.gz"
 
     maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack

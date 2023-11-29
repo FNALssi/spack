@@ -7,7 +7,9 @@
 include Tcl non-hierarchical modules, Lua hierarchical modules, and others.
 """
 
-from .common import disable_modules
+from typing import Dict, Type
+
+from .common import BaseModuleFileWriter, disable_modules
 from .lmod import LmodModulefileWriter
 from .tcl import TclModulefileWriter
 from .ups_table import UpsTableModulefileWriter
@@ -19,10 +21,9 @@ __all__ = [
     "UpsTableModulefileWriter",
     "UpsVersionModulefileWriter",
     "disable_modules",
-    "ensure_modules_are_enabled_or_warn",
 ]
 
-module_types = {
+module_types: Dict[str, Type[BaseModuleFileWriter]] = {
     "tcl": TclModulefileWriter,
     "lmod": LmodModulefileWriter,
     "ups_table": UpsTableModulefileWriter,

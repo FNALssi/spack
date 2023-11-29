@@ -7,9 +7,9 @@ from spack.package import *
 
 
 class PerlNamespaceAutoclean(PerlPackage):
-    """Keep imports out of your namespace."""  # AUTO-CPAN2Spack
+    """Namespace::Autoclean - Keep imports out of your namespace"""
 
-    homepage = "https://github.com/moose/namespace-autoclean"  # AUTO-CPAN2Spack
+    homepage = "https://metacpan.org/pod/namespace::autoclean"
     url = "https://cpan.metacpan.org/authors/id/E/ET/ETHER/namespace-autoclean-0.29.tar.gz"
 
     maintainers("chissg", "gartung", "marcmengel", "vitodb")  # AUTO-CPAN2Spack
