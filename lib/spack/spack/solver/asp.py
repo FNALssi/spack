@@ -2843,7 +2843,9 @@ class SpecBuilder:
                 compiler_flags = spec.compiler_flags.get(flag_type, [])
 
                 msg = "compiler flags %s does not equal %s for %s" % (
-                    set(compiler_flags), set(ordered_compiler_flags), spec.name
+                    set(compiler_flags),
+                    set(ordered_compiler_flags),
+                    spec.name,
                 )
 
                 assert set(compiler_flags) == set(ordered_compiler_flags), msg

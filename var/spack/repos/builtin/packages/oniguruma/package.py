@@ -21,7 +21,7 @@ class Oniguruma(AutotoolsPackage):
         return find_libraries("libonig", root=self.prefix, recursive=True)
 
     def configure_args(self):
-        return ['--enable-posix-api']
+        return ["--enable-posix-api"]
 
     @run_after("install")
     @on_package_attributes(run_tests=True)

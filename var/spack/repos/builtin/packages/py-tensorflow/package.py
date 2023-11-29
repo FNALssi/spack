@@ -511,8 +511,8 @@ class PyTensorflow(Package, CudaPackage, ROCmPackage, PythonExtension):
         filter_file(
             '#include "absl',
             '#include <cstdint>\n#include "absl',
-            'tensorflow/tsl/platform/stringpiece.h',
-         )
+            "tensorflow/tsl/platform/stringpiece.h",
+        )
 
     phases = ["configure", "build", "install"]
 

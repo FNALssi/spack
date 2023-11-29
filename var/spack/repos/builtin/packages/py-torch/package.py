@@ -430,7 +430,7 @@ class PyTorch(PythonPackage, CudaPackage, ROCmPackage):
         filter_file(
             "#include <string>",
             "#include <string>\n#include <cstdint>",
-            "third_party/fbgemm/include/fbgemm/UtilsAvx2.h"
+            "third_party/fbgemm/include/fbgemm/UtilsAvx2.h",
         )
         with when("@1.5.0:"):
             # https://github.com/pytorch/pytorch/issues/52208

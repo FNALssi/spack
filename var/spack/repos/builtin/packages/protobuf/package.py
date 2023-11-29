@@ -148,11 +148,13 @@ class Protobuf(CMakePackage):
         ]
 
         if not self.spec.satisfies("cxxstd=14") and self.compiler.name == "clang":
-            args.extend( [
-                "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(
-                    self.spec.variants["cxxstd"].value,
-                ),
-             ] )
+            args.extend(
+                [
+                    "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(
+                        self.spec.variants["cxxstd"].value
+                    )
+                ]
+            )
 
         if self.spec.satisfies("@3.22:"):
             cxxstd = self.spec["abseil-cpp"].variants["cxxstd"].value
@@ -164,11 +166,14 @@ class Protobuf(CMakePackage):
             )
 
             if not cxxstd == 14 and self.compiler.name == "clang":
-                args.extend( [
-                    "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(cxxstd),
-                  ]
+                args.extend(
+                    [
+                        "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(
+                            cxxstd
+                        )
+                    ]
                 )
- 
+
         if self.spec.satisfies("platform=darwin"):
             args.append(self.define("CMAKE_MACOSX_RPATH", True))
 

@@ -346,9 +346,9 @@ class Root(CMakePackage):
 
     def patch(self):
         filter_file(
-            r'#include <sstream>',
-            '#include <sstream>\n#include <cstdint>',
-            'graf3d/eve7/inc/ROOT/REveTypes.hxx'
+            r"#include <sstream>",
+            "#include <sstream>\n#include <cstdint>",
+            "graf3d/eve7/inc/ROOT/REveTypes.hxx",
         )
 
     @classmethod

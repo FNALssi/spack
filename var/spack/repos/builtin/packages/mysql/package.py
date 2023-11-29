@@ -137,14 +137,13 @@ class Mysql(CMakePackage):
 
     patch("fix-no-server-5.5.patch", level=1, when="@5.5.0:5.5")
     patch("old_ssl_fix.patch", when="@8.0.29")
-    patch("missing_include.patch",  when="@8:")
-
+    patch("missing_include.patch", when="@8:")
 
     def patch(self):
         filter_file(
-           r"IF\(NOT BOOST_MINOR_VERSION EQUAL",
-           "IF(NOT BOOST_MINOR_VERSION GREATER_EQUAL",
-           "cmake/boost.cmake",
+            r"IF\(NOT BOOST_MINOR_VERSION EQUAL",
+            "IF(NOT BOOST_MINOR_VERSION GREATER_EQUAL",
+            "cmake/boost.cmake",
         )
 
     @property

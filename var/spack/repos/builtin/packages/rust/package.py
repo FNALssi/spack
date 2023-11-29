@@ -146,10 +146,7 @@ class Rust(Package):
         configure(*flags)
 
     def setup_build_environment(self, env):
-        env.set(
-            "CARGO_HOME",
-            os.path.join(os.path.dirname(self.stage.path), ".cargo")
-        )
+        env.set("CARGO_HOME", os.path.join(os.path.dirname(self.stage.path), ".cargo"))
 
     def build(self, spec, prefix):
         python("./x.py", "build")
