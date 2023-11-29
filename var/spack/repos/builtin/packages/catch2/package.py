@@ -17,7 +17,6 @@ class Catch2(CMakePackage):
     maintainers("ax3l", "greenc-FNAL")
 
     # In-Development
-
     version("develop", branch="devel")
 
     # Releases
@@ -120,23 +119,6 @@ class Catch2(CMakePackage):
         "pic", when="@3: ~shared", default=True, description="Build with position-independent code"
     )
     variant("shared", when="@3:", default=False, description="Build shared library")
-
-    def patch(self):
-        filter_file(
-            r"#include <vector>",
-            "#include <vector>\n#include <cstdint>",
-            "src/catch2/internal/catch_string_manip.hpp",
-        )
-        filter_file(
-            r"#include <vector>",
-            "#include <vector>\n#include <cstdint>",
-            "src/catch2/internal/catch_xmlwriter.hpp",
-        )
-        filter_file(
-            r"#include <vector>",
-            "#include <vector>\n#include <cstdint>",
-            "src/catch2/catch_test_case_info.hpp",
-        )
 
     def patch(self):
         filter_file(

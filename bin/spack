@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-#!/bin/sh
+# #!/bin/sh
 # -*- python -*-
 #
 # Copyright 2013-2023 Lawrence Livermore National Security, LLC and other

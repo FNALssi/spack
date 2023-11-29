@@ -150,9 +150,8 @@ class Protobuf(CMakePackage):
         if not self.spec.satisfies("cxxstd=14") and self.compiler.name == "clang":
             args.extend(
                 [
-                    "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(
-                        self.spec.variants["cxxstd"].value
-                    )
+                    f'-DCMAKE_CXX_FLAGS=-std=c++{self.spec.variants["cxxstd"].value}'
+                    " -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1"
                 ]
             )
 
@@ -168,9 +167,8 @@ class Protobuf(CMakePackage):
             if not cxxstd == 14 and self.compiler.name == "clang":
                 args.extend(
                     [
-                        "-DCMAKE_CXX_FLAGS=-std=c++{0} -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1".format(
-                            cxxstd
-                        )
+                        f"-DCMAKE_CXX_FLAGS=-std=c++{cxxstd}"
+                        " -D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1"
                     ]
                 )
 

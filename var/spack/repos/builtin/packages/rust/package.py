@@ -96,6 +96,9 @@ class Rust(Package):
         certs = join_path(self.spec["openssl"].prefix, "etc/openssl/cert.pem")
         env.set("CARGO_HTTP_CAINFO", certs)
 
+        # Set CARGO_HOME.
+        env.set("CARGO_HOME", os.path.join(os.path.dirname(self.stage.path), ".cargo"))
+
     def configure(self, spec, prefix):
         opts = []
 
@@ -144,9 +147,6 @@ class Rust(Package):
         flags.append(f"--tools={','.join(tools)}")
 
         configure(*flags)
-
-    def setup_build_environment(self, env):
-        env.set("CARGO_HOME", os.path.join(os.path.dirname(self.stage.path), ".cargo"))
 
     def build(self, spec, prefix):
         python("./x.py", "build")
