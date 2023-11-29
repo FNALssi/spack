@@ -6,9 +6,8 @@ import inspect
 import os
 import re
 import shutil
-from typing import List, Optional  # novm
 import stat
-from typing import Optional
+from typing import List, Optional  # novm
 
 import archspec
 
