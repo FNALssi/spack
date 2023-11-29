@@ -661,17 +661,20 @@ spack:
     with ev.Environment(str(tmpdir)) as e:
         assert not e.manifest.pristine_yaml_content["spack"]["config"]["ccache"]
 
+
 def test_config_list_scopes():
     output = config("list-scopes")
     assert "command_line" in output
     assert "_builtin" in output
     assert any("/" in s for s in output)
 
+
 def test_config_list_scopes_file():
     output = config("list-scopes", "--file")
     assert "site" in output
     assert "_builtin" not in output
     assert any("/" in s for s in output)
+
 
 def test_config_list_scopes_non_platform():
     output = config("list-scopes", "--non-platform")

@@ -77,13 +77,10 @@ def setup_parser(subparser):
         "--file",
         action="store_true",
         default=False,
-        help="list only writable scopes with an associated file"
+        help="list only writable scopes with an associated file",
     )
     stype.add_argument(
-        "--non-platform",
-        action="store_true",
-        default=False,
-        help="list only non-platform scopes"
+        "--non-platform", action="store_true", default=False, help="list only non-platform scopes"
     )
 
     add_parser = sp.add_parser("add", help="add configuration parameters")
@@ -212,7 +209,13 @@ def config_list(args):
 
 
 def config_list_scopes(args):
-    scopes = reversed(spack.config.CONFIG.file_scopes) if args.file else spack.config.CONFIG._non_platform_scopes if args.non_platform else reversed(spack.config.CONFIG.scopes.values())
+    scopes = (
+        reversed(spack.config.CONFIG.file_scopes)
+        if args.file
+        else spack.config.CONFIG._non_platform_scopes
+        if args.non_platform
+        else reversed(spack.config.CONFIG.scopes.values())
+    )
     print(" ".join([s.name for s in scopes]))
 
 
