@@ -243,3 +243,8 @@ class Vecgeom(CMakePackage, CudaPackage):
             args.extend([define("USOLIDS", True), define("USOLIDS_VECGEOM", True)])
 
         return args
+
+    def setup_dependent_run_environment(self, env, dep_spec):
+        env.set("VECGEOM_INC", self.prefix.include)
+        env.set("VECGEOM_LIB", self.prefix.lib)
+

@@ -1249,6 +1249,8 @@ print(json.dumps(config))
             # site-packages directories
             for directory in {self.platlib, self.purelib}:
                 env.prepend_path("PYTHONPATH", os.path.join(dependent_spec.prefix, directory))
+        env.set("PYTHON_INCLUDE", self.prefix.include)
+        env.set("PYTHON_LIBDIR", self.libs.directories[0])
 
     def setup_dependent_package(self, module, dependent_spec):
         """Called before python modules' install() methods."""

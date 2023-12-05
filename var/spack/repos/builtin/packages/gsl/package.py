@@ -65,3 +65,4 @@ class Gsl(AutotoolsPackage, GNUMirrorPackage):
         # cmake looks for GSL_ROOT_DIR to find GSL so this helps pick the spack one
         # when there are multiple installations (e.g. a system one and a spack one)
         env.set("GSL_ROOT_DIR", self.prefix)
+        env.set("GSL_INC", self.prefix.include)

@@ -508,6 +508,9 @@ class MakefileBuilder(spack.build_systems.makefile.MakefileBuilder):
         output = compile_c_and_execute(source_file, [include_flags], link_flags.split())
         compare_output_file(output, blessed_file)
 
+    def setup_dependent_run_environment(self, env, dep_spec):
+        env.set("OPENBLAS_INC", self.prefix.include)
+
 
 class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
     def cmake_args(self):
@@ -532,3 +535,7 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
             cmake_defs += [self.define("USE_OPENMP", "OFF"), self.define("USE_THREAD", "OFF")]
 
         return cmake_defs
+
+     def setup_dependent_run_environment(self, env, dep_spec):
+        env.set("OPENBLAS_INC", self.prefix.include)
+

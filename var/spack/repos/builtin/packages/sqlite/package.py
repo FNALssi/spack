@@ -249,3 +249,7 @@ class Sqlite(AutotoolsPackage):
         sqlite3 = which(self.prefix.bin.sqlite3)
         out = sqlite3("-version", output=str.split, error=str.split)
         assert vers_str in out
+
+    def setup_dependent_run_env(self, env, dep_spec):
+        env.set("SQLITE_INC", self.prefix.include)
+

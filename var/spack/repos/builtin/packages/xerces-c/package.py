@@ -104,3 +104,7 @@ class XercesC(AutotoolsPackage):
             args.append("--enable-transcoder-" + transcoder)
 
         return args
+
+    def setup_dependent_run_env(self, env, dep_spec):
+        env.set("XERCES_C_INC", self.prefix.include)
+

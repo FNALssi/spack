@@ -285,3 +285,10 @@ class Geant4(CMakePackage):
         return join_path(
             dataspec.prefix.share, "{0}-{1}".format(dataspec.name, dataspec.version.dotted)
         )
+
+    def setup_dependent_run_env(self, spec, dep_spec):
+        prefix=self.prefix
+        env.set("G4INCLUDE", prefix.include)
+        env.set("G4LIB", prefix.include)
+        # note: G4xxxDATA are set by the respective packages
+        env.set("GEANT4_VERSION", str(spec.version))

@@ -104,3 +104,7 @@ class Clhep(CMakePackage):
             "-DCLHEP_BUILD_CXXSTD=-std=c++{0}".format(self.spec.variants["cxxstd"].value)
         ]
         return cmake_args
+
+    def setup_dependent_run_env(self, spec, dep_spec):
+        prefix=self.prefix
+        env.set("CLHEP_INC", prefix.include)

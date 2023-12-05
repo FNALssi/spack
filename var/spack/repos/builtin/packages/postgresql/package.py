@@ -133,6 +133,7 @@ class Postgresql(AutotoolsPackage):
             env.prepend_path("TCLLIBPATH", self.prefix.lib)
         if "+python" in spec:
             env.prepend_path("PYTHONPATH", self.prefix.lib)
+        env.set("POSTGRESQL_INC", self.prefix.include)
 
     @property
     def libs(self):
