@@ -536,6 +536,6 @@ class CMakeBuilder(spack.build_systems.cmake.CMakeBuilder):
 
         return cmake_defs
 
-     def setup_dependent_run_environment(self, env, dep_spec):
+    def setup_dependent_run_environment(self, env, dep_spec):
         env.set("OPENBLAS_INC", self.prefix.include)
 
