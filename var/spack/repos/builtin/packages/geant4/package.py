@@ -67,6 +67,8 @@ class Geant4(CMakePackage):
     variant("tbb", default=False, description="Use TBB as a tasking backend", when="@11:")
     variant("vtk", default=False, description="Enable VTK support", when="@11:")
 
+    depends_on("compiler-runtime")
+
     depends_on("cmake@3.16:", type="build", when="@11.0.0:")
     depends_on("cmake@3.8:", type="build", when="@10.6.0:")
     depends_on("cmake@3.5:", type="build")
@@ -287,8 +289,7 @@ class Geant4(CMakePackage):
         )
 
     def setup_dependent_run_env(self, spec, dep_spec):
-        prefix=self.prefix
-        env.set("G4INCLUDE", prefix.include)
-        env.set("G4LIB", prefix.include)
+        env.set("G4INCLUDE", self.prefix.include)
+        env.set("G4LIB", self.prefix.include)
         # note: G4xxxDATA are set by the respective packages
         env.set("GEANT4_VERSION", str(spec.version))
