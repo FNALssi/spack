@@ -1,8 +1,5 @@
 #!/bin/sh
 # -*- python -*-
-# Fermi change, just use system python3, insulated 
-# avoid experiment python builds, PYTHONPATH, etc.
-#!/bin/sh
 #
 # Copyright 2013-2023 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
