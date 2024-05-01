@@ -78,3 +78,8 @@ class Glew(CMakePackage):
                 args.append(self.define("OPENGL_egl_LIBRARY", "IGNORE"))
 
         return args
+
+    def flag_handler(self, name, flags):
+        if name == "ldflags" and self.spec.satisfies("platform=darwin ^apple-gl"):
+            flags.append("-framework OpenGL")
+        return (flags, None, None)
