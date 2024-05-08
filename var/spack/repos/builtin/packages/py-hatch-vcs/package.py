@@ -18,3 +18,5 @@ class PyHatchVcs(PythonPackage):
     depends_on("py-hatchling@1.1:", when="@0.3:", type=("build", "run"))
     depends_on("py-hatchling@0.21.0:", type=("build", "run"))
     depends_on("py-setuptools-scm@6.4.0:", type=("build", "run"))
+    depends_on("python")
+    extends("python")
