@@ -14,6 +14,7 @@ class PerlCompressRawBzip2(PerlPackage):
 
     license("GPL-1.0-or-later OR Artistic-1.0-Perl")
 
+    version("2.212", sha256="6caeee843c428f45fa9646ea98dc675470db63dbac0ee3e2d8e9ee4eb58a856d")
     version("2.204", sha256="ee7b490e67e7e2a7a0e8c1e1aa29a9610066149f46b836921149ad1813f70c69")
     version("2.201", sha256="6204b270806d924e124e406faf6bbc715f7bb461dfdbea722042325633be300a")
     version("2.103", sha256="6172d16b0797b10a14e7e1e8dfddcd3d98910adcf5681285e716659f1197164d")

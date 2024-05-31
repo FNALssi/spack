@@ -14,6 +14,7 @@ class PerlNetHttp(PerlPackage):
 
     license("GPL-1.0-or-later OR Artistic-1.0-Perl")
 
+    version("6.23", sha256="0d65c09dd6c8589b2ae1118174d3c1a61703b6ecfc14a3442a8c74af65e0c94e")
     version("6.22", sha256="62faf9a5b84235443fe18f780e69cecf057dea3de271d7d8a0ba72724458a1a2")
     version("6.21", sha256="375aa35b76be99f06464089174d66ac76f78ce83a5c92a907bbfab18b099eec4")
     version("6.20", sha256="92527b2a24512961b8e3637c6216a057751e39b6fa751422ed181ff599779f1e")
