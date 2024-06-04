@@ -105,6 +105,6 @@ class XercesC(AutotoolsPackage):
 
         return args
 
-    def setup_dependent_run_env(self, env, dep_spec):
+    def setup_dependent_run_environmnent(self, env, dep_spec):
         env.set("XERCES_C_INC", self.prefix.include)
 

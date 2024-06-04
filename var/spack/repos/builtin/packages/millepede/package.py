@@ -18,6 +18,7 @@ class Millepede(MakefilePackage):
 
     parallel = False
 
+    version("04-16-00", sha256="5b1e4ff567ce4fc830bea4ad175ff6d05ba17bfe33569b71276c5cea6cc42926")
     version("04-13-03", sha256="669a6e46a6f02ba3c78b2760e2ffb2c90d25b582ccd1a5c0770eef81c7bcbbe9")
     version("04-11-01", sha256="9869eb84d8d07cecfab15c396f3faa36aef10906e39f8641c48b58e0325b3205")
 

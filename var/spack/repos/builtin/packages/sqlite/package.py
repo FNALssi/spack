@@ -250,6 +250,6 @@ class Sqlite(AutotoolsPackage):
         out = sqlite3("-version", output=str.split, error=str.split)
         assert vers_str in out
 
-    def setup_dependent_run_env(self, env, dep_spec):
+    def setup_dependent_run_environment(self, env, dep_spec):
         env.set("SQLITE_INC", self.prefix.include)
 
