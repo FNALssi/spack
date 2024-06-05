@@ -1,0 +1,18 @@
+[submodule "var/spack/extensions/spack-subspack"]
+	path = var/spack/extensions/spack-subspack
+	url = https://github.com/marcmengel/spack-subspack
+[submodule "var/spack/extensions/spack-linuxexternas"]
+	path = var/spack/extensions/spack-linuxexternas
+	url = https://github.com/marcmengel/spack-linuxexternals
+[submodule "var/spack/extensions/spack-mpd"]
+	path = var/spack/extensions/spack-mpd
+	url = https://github.com/knoepfel/spack-mpd
+[submodule "var/spack/repos/fnal_art"]
+	path = var/spack/repos/fnal_art
+	url = https://github.com/fnalSSI/fnal_art
+[submodule "var/spack/repos/nusofthep-spack-recipes"]
+	path = var/spack/repos/nusofthep-spack-recipes
+	url = https://github.com/NuSoftHEP/nusofthep-spack-recipes
+[submodule "var/spack/repos/larsoft-spack-recipes"]
+	path = var/spack/repos/larsoft-spack-recipes
+	url = https://github.com/LArSoft/larsoft-spack-recipes

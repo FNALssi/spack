@@ -396,3 +396,5 @@ fi
 # done: unset sentinel variable as we're no longer initializing
 unset _sp_initializing
 export _sp_initializing
+export SPACK_SKIP_MODULES=true
+export SPACK_DISABLE_LOCAL_CONFIG=true
