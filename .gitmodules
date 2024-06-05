@@ -16,3 +16,6 @@
 [submodule "var/spack/repos/larsoft-spack-recipes"]
 	path = var/spack/repos/larsoft-spack-recipes
 	url = https://github.com/LArSoft/larsoft-spack-recipes
+[submodule "etc/spack/linux"]
+	path = etc/spack/linux
+	url = https://github.com/marcmengel/fermi-etc-spack-linux
