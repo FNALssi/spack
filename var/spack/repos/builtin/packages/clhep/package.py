@@ -105,5 +105,5 @@ class Clhep(CMakePackage):
         ]
         return cmake_args
 
-    def setup_dependent_run_env(self, spec, dep_spec):
+    def setup_dependent_run_environment(self, env, dep_spec):
         env.set("CLHEP_INC", self.prefix.include)
