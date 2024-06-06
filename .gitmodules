@@ -19,3 +19,6 @@
 [submodule "etc/spack/linux"]
 	path = etc/spack/linux
 	url = https://github.com/marcmengel/fermi-etc-spack-linux
+[submodule "var/spack/extensions/spack-installdir"]
+	path = var/spack/extensions/spack-installdir
+	url = https://github.com/marcmengel/spack-installdir
