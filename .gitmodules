@@ -25,3 +25,6 @@
 [submodule "var/spack/repos/artdaq-spack"]
 	path = var/spack/repos/artdaq-spack
 	url = https://github.com/art-daq/artdaq-spack.git
+[submodule "var/spack/extensions/spack-localbuildcache"]
+	path = var/spack/extensions/spack-localbuildcache
+	url = https://github.com/marcmengel/spack-localbuildcache.git
