@@ -22,3 +22,6 @@
 [submodule "var/spack/extensions/spack-installdir"]
 	path = var/spack/extensions/spack-installdir
 	url = https://github.com/marcmengel/spack-installdir
+[submodule "var/spack/repos/artdaq-spack"]
+	path = var/spack/repos/artdaq-spack
+	url = https://github.com/art-daq/artdaq-spack.git
