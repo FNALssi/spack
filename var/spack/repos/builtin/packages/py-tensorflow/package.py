@@ -769,7 +769,7 @@ class PyTensorflow(Package, CudaPackage, ROCmPackage, PythonExtension):
             "--config=opt",
             # Enable verbose output for failures
             "--verbose_failures",
-            "--cxxopt={0}".format(self.spec.variants["cxxstd"].value),
+            "--cxxopt='-std=c++{0}'".format(self.spec.variants["cxxstd"].value),
         ]
 
         if spec.satisfies("^bazel@:3.5"):
