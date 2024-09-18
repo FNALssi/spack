@@ -766,6 +766,17 @@ class Root(CMakePackage):
         else:
             options.append(define("cxx" + self.spec.variants["cxxstd"].value, True))
 
+        # Extra options required if we're using libc++
+        if sys.platform != "darwin" and self.spec.satisfies("cxxflags=-stdlib=libc++"):
+            options.extend(
+                [
+                    define("CLANG_DEFAULT_CXX_STDLIB", "libc++"),
+                    define("LLVM_ENABLE_LIBCXX", True),
+                    define("libcxx", True),
+                ]
+            )
+
+        # Make sure we find FTGL when needed
         if "+x+opengl" in self.spec:
             ftgl_prefix = self.spec["ftgl"].prefix
             options.append(define("FTGL_ROOT_DIR", ftgl_prefix))
