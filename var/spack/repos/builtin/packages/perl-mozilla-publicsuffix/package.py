@@ -24,9 +24,8 @@ class PerlMozillaPublicsuffix(PerlPackage):
     depends_on("perl-module-build", type="build")
 
     depends_on("perl@5.8:", type=("build", "run"))  # AUTO-CPAN2Spack
-    depends_on("perl-uri", type="run")  # AUTO-CPAN2Spack
     depends_on("perl-module-build@0.28:", type="build")  # AUTO-CPAN2Spack
-    depends_on('perl-uri')
+    depends_on("perl-uri")
 
     def patch(self):
         """HTTP::Tiny has a bad interaction with Errno.pm for Perl <5.22"""
