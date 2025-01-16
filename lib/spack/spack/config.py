@@ -736,6 +736,9 @@ class Configuration:
         return (s for s in reversed(self.scopes.values()) if not s.is_platform_dependent)
 
 
+ConfigurationType = Union[Configuration, lang.Singleton]
+
+
 @contextlib.contextmanager
 def override(
     path_or_scope: Union[ConfigScope, str], value: Optional[Any] = None
