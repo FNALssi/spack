@@ -91,9 +91,6 @@ class Binutils(AutotoolsPackage, GNUMirrorPackage):
         deprecated=True,
     )
 
-    depends_on("c", type="build")
-    depends_on("cxx", type="build")
-
     variant("plugins", default=True, description="enable plugins, needed for gold linker")
     # When you build ld.gold you automatically get ld, even when you add the
     # --disable-ld flag
@@ -148,6 +145,9 @@ class Binutils(AutotoolsPackage, GNUMirrorPackage):
     depends_on("autoconf", when="@2.39")
     depends_on("automake", when="@2.39")
     depends_on("libtool", when="@2.39")
+
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
 
     # compression libs for debug symbols.
     depends_on("zstd@1.4.0:", when="@2.40:")
