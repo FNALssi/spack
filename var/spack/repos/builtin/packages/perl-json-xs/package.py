@@ -21,5 +21,5 @@ class PerlJsonXs(PerlPackage):
     depends_on("perl-extutils-makemaker@6.52:", type=("build"))
     depends_on("perl-types-serialiser", type=("build", "run", "test"))
 
-    def setup_build_environment(self, env):
+    def setup_build_environment(self, env: EnvironmentModifications) -> None:
         env.set("PERL_CANARY_STABILITY_NOPROMPT", "1")

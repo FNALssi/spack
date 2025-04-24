@@ -111,6 +111,7 @@ class Podio(CMakePackage):
     depends_on("py-pyyaml", type=("build", "run"))
     depends_on("py-jinja2@2.10.1:", type=("build", "run"))
     depends_on("sio", type=("build", "link"), when="+sio")
+    depends_on("fmt@9:", type=("build", "link"), when="@1.3:")
     depends_on("catch2@3.0.1:", type=("test"), when="@:0.16.5")
     depends_on("catch2@3.1:", type=("test"), when="@0.16.6:")
     depends_on("catch2@3.4:", type=("test"), when="@0.17.1: cxxstd=20")
@@ -142,7 +143,7 @@ class Podio(CMakePackage):
         ]
         return args
 
-    def setup_run_environment(self, env):
+    def setup_run_environment(self, env: EnvironmentModifications) -> None:
         if self.spec.satisfies("@:0.99"):
             # After 0.99 podio installs its python bindings into a more standard place
             env.prepend_path("PYTHONPATH", self.prefix.python)
@@ -156,7 +157,9 @@ class Podio(CMakePackage):
         # Frame header needs to be available for python bindings
         env.prepend_path("ROOT_INCLUDE_PATH", self.prefix.include)
 
-    def setup_dependent_build_environment(self, env, dependent_spec):
+    def setup_dependent_build_environment(
+        self, env: EnvironmentModifications, dependent_spec: Spec
+    ) -> None:
         if self.spec.satisfies("@:0.99"):
             env.prepend_path("PYTHONPATH", self.prefix.python)
 

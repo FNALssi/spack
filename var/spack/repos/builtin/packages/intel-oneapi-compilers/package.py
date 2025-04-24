@@ -444,7 +444,7 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
     def compiler_search_prefix(self):
         return self._llvm_bin
 
-    def setup_run_environment(self, env):
+    def setup_run_environment(self, env: EnvironmentModifications) -> None:
         """Adds environment variables to the generated module file.
 
         These environment variables come from running:
@@ -470,7 +470,9 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
         env.set("F77", self._llvm_bin.ifx)
         env.set("FC", self._llvm_bin.ifx)
 
-    def setup_dependent_build_environment(self, env, dependent_spec):
+    def setup_dependent_build_environment(
+        self, env: EnvironmentModifications, dependent_spec: Spec
+    ) -> None:
         super().setup_dependent_build_environment(env, dependent_spec)
         # workaround bug in icpx driver where it requires sycl-post-link is on the PATH
         # It is located in the same directory as the driver. Error message:
@@ -479,9 +481,9 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
         # also ensures that shared objects and libraries required by the compiler,
         # e.g. libonnx, can be found succesfully
         # due to a fix, this is no longer required for OneAPI versions >= 2024.2
-        bin_dir = os.path.dirname(self.cxx)
-        lib_dir = os.path.join(os.path.dirname(bin_dir), "lib")
         if self.cxx and self.spec.satisfies("%oneapi@:2024.1"):
+            bin_dir = os.path.dirname(self.cxx)
+            lib_dir = os.path.join(os.path.dirname(bin_dir), "lib")
             env.prepend_path("PATH", bin_dir)
             env.prepend_path("LD_LIBRARY_PATH", lib_dir)
 
@@ -655,38 +657,32 @@ class IntelOneapiCompilers(IntelOneApiPackage, CompilerPackage):
 
     @classmethod
     def runtime_constraints(cls, *, spec, pkg):
-        pkg("*").depends_on(
-            "intel-oneapi-runtime",
-            when="%oneapi",
-            type="link",
-            description="If any package uses %oneapi, it depends on intel-oneapi-runtime",
-        )
-        pkg("*").depends_on(
-            f"intel-oneapi-runtime@{str(spec.version)}:",
-            when=f"^[deptypes=build] {spec.name}@{spec.versions}",
-            type="link",
-            description=f"If any package uses %{str(spec)}, "
-            f"it depends on intel-oneapi-runtime@{str(spec.version)}:",
-        )
+        for language in ("c", "cxx", "fortran"):
+            pkg("*").depends_on(
+                f"intel-oneapi-runtime@{spec.version}:",
+                when=f"%[virtuals={language}] {spec.name}@{spec.versions}",
+                type="link",
+                description="Inject intel-oneapi-runtime when oneapi is used as "
+                f"a {language} compiler",
+            )
 
         for fortran_virtual in ("fortran-rt", "libifcore@5"):
             pkg("*").depends_on(
                 fortran_virtual,
-                when=f"^[virtuals=fortran deptypes=build] {spec.name}@{spec.versions}",
+                when=f"%[virtuals=fortran] {spec.name}@{spec.versions}",
                 type="link",
-                description=f"Add a dependency on 'libifcore' for nodes compiled with "
-                f"{str(spec)} and using the 'fortran' language",
+                description="Add a dependency on 'libifcore' for nodes compiled with "
+                f"{spec.name}@{spec.versions} and using the 'fortran' language",
             )
         # The version of intel-oneapi-runtime is the same as the %oneapi used to "compile" it
         pkg("intel-oneapi-runtime").requires(
-            f"@{str(spec.versions)}", when=f"^[deptypes=build] {spec.name}@{spec.versions}"
+            f"@{spec.versions}", when=f"%{spec.name}@{spec.versions}"
         )
 
-        # If a node used %intel-oneapi=runtime@X.Y its dependencies must use @:X.Y
+        # If a node used %intel-oneapi-runtime@X.Y its dependencies must use @:X.Y
         # (technically @:X is broader than ... <= @=X but this should work in practice)
         pkg("*").propagate(
-            f"intel-oneapi-compilers@:{str(spec.version)}",
-            when=f"^[deptypes=build] {spec.name}@{spec.versions}",
+            f"intel-oneapi-compilers@:{spec.version}", when=f"%{spec.name}@{spec.versions}"
         )
 
     def _cc_path(self):

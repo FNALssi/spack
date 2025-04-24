@@ -187,7 +187,7 @@ class Root(CMakePackage):
         patch(
             "https://github.com/root-project/root/pull/15925.diff?full_index=1",
             sha256="1937290a4d54cd2e3e8a8d23d93b8dedaca9ed8dcfdcfa2f0d16629ff53fb3b7",
-            when="@6.28: +python",
+            when="@6.28:6.32 +python",
         )
 
     # ###################### Variants ##########################
@@ -198,6 +198,9 @@ class Root(CMakePackage):
     variant("arrow", default=False, description="Enable Arrow interface")
     variant("cuda", when="@6.08.00:", default=False, description="Enable CUDA support")
     variant("cudnn", when="@6.20.02:", default=False, description="Enable cuDNN support")
+    variant(
+        "daos", default=False, description="Enable RNTuple support for DAOS storage", when="@6.26:"
+    )
     variant("davix", default=True, description="Compile with external Davix")
     variant("dcache", default=False, description="Enable support for dCache")
     variant("emacs", default=False, description="Enable Emacs support")
@@ -397,6 +400,7 @@ class Root(CMakePackage):
     depends_on("cuda", when="+cuda")
     depends_on("cuda", when="+cudnn")
     depends_on("cudnn", when="+cudnn")
+    depends_on("daos", when="+daos")
     depends_on("davix @0.7.1:", when="+davix")
     depends_on("dcap", when="+dcache")
     depends_on("cfitsio", when="+fits")
@@ -509,6 +513,7 @@ class Root(CMakePackage):
     # See https://github.com/root-project/root/issues/11135
     conflicts("+ipo", msg="LTO is not a supported configuration for building ROOT")
 
+    @when("+root7 +geom +webgui")
     def patch(self):
         filter_file(
             r"#include <sstream>",
@@ -568,6 +573,7 @@ class Root(CMakePackage):
                     variants.append("~%s" % variantname[1:])
 
         _add_variant(v, f, "cocoa", "+aqua")
+        _add_variant(v, f, "daos", "+daos")
         _add_variant(v, f, "davix", "+davix")
         _add_variant(v, f, "dcache", "+dcache")
         _add_variant(v, f, "fftw3", "+fftw")
@@ -714,6 +720,7 @@ class Root(CMakePackage):
             define_from_variant("cocoa", "aqua"),
             define("dataframe", True),
             define_from_variant("davix"),
+            define_from_variant("daos"),
             define_from_variant("dcache"),
             define_from_variant("fftw3", "fftw"),
             define_from_variant("fitsio", "fits"),
@@ -830,7 +837,7 @@ class Root(CMakePackage):
 
         return options
 
-    def setup_build_environment(self, env):
+    def setup_build_environment(self, env: EnvironmentModifications) -> None:
         spec = self.spec
 
         if "lz4" in spec:
@@ -884,7 +891,7 @@ class Root(CMakePackage):
                 return "LD_LIBRARY_PATH"
         return "ROOT_LIBRARY_PATH"
 
-    def setup_run_environment(self, env):
+    def setup_run_environment(self, env: EnvironmentModifications) -> None:
         env.set("ROOTSYS", self.prefix)
         env.set("ROOT_VERSION", "v{0}".format(self.version.up_to(1)))
         env.prepend_path("PYTHONPATH", self.prefix.lib.root)
