@@ -745,15 +745,22 @@ class Llvm(CMakePackage, CudaPackage, LlvmDetection, CompilerPackage):
         when="@15:16",
     )
 
-    @when("@14:17")
     def patch(self):
-        # https://github.com/llvm/llvm-project/pull/69458
-        filter_file(
-            r"${TERMINFO_LIB}",
-            r"${Terminfo_LIBRARIES}",
-            "lldb/source/Core/CMakeLists.txt",
-            string=True,
-        )
+        if self.spec.satisfies("@14:17"):
+            # https://github.com/llvm/llvm-project/pull/69458
+            filter_file(
+                r"${TERMINFO_LIB}",
+                r"${Terminfo_LIBRARIES}",
+                "lldb/source/Core/CMakeLists.txt",
+                string=True,
+            )
+        if self.spec.satisfies("+z3"):
+            filter_file(
+                "project(Runtimes C CXX ASM)",
+                "project(Runtimes C CXX ASM)\nfind_package(Z3)",
+                "runtimes/CMakeLists.txt",
+                string=True,
+            )
 
     clang_and_friends = "(?:clang|flang|flang-new)"
 
@@ -1087,7 +1094,8 @@ class Llvm(CMakePackage, CudaPackage, LlvmDetection, CompilerPackage):
                 cmake_args.append(from_variant("CLANG_ANALYZER_ENABLE_Z3_SOLVER", "z3"))
             elif spec.satisfies("@9:"):
                 cmake_args.append(from_variant("LLVM_ENABLE_Z3_SOLVER", "z3"))
-
+                if self.spec.satisfies("+z3"):
+                    cmake_args.append(define("LLVM_Z3_INSTALL_DIR", self.spec["z3"].prefix))
         if spec.satisfies("+flang"):
             projects.append("flang")
         if spec.satisfies("+lld"):
