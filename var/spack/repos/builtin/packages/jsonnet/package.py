@@ -20,20 +20,20 @@ class Jsonnet(MakefilePackage, CMakePackage):
     license("Apache-2.0")
 
     version("master", branch="master")
-    version(
-        "0.21.0-rc1", sha256="0420cc234137ce0cd9314589e22c6e039799ba37b870377b7e3d9b452db8f36e"
-    )
+    version("0.21.0", sha256="a12ebca72e43e7061ffe4ef910e572b95edd7778a543d6bf85f6355bd290300e")
     version("0.20.0", sha256="77bd269073807731f6b11ff8d7c03e9065aafb8e4d038935deb388325e52511b")
     version("0.19.1", sha256="f5a20f2dc98fdebd5d42a45365f52fa59a7e6b174e43970fea4f9718a914e887")
     version("0.18.0", sha256="85c240c4740f0c788c4d49f9c9c0942f5a2d1c2ae58b2c71068107bc80a3ced4")
     version("0.17.0", sha256="076b52edf888c01097010ad4299e3b2e7a72b60a41abbc65af364af1ed3c8dbe")
 
-    build_system("makefile", conditional("cmake", when="@0.21.0-rc1:"), default="makefile")
+    variant("python", default=False, description="Provide Python bindings for jsonnet")
+
+    build_system("makefile", conditional("cmake", when="@0.21.0:"), default="makefile")
 
     conflicts("%gcc@:5.4.99", when="@0.18.0:")
 
-    depends_on("c", type="build")  # generated
-    depends_on("cxx", type="build")  # generated
+    depends_on("c", type="build")
+    depends_on("cxx", type="build")
 
     with when("build_system=cmake"):
         depends_on("nlohmann-json@3.6.1:")
