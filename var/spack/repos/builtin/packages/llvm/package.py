@@ -956,7 +956,8 @@ class Llvm(CMakePackage, CudaPackage, LlvmDetection, CompilerPackage):
                 cmake_args.append(from_variant("CLANG_ANALYZER_ENABLE_Z3_SOLVER", "z3"))
             elif spec.satisfies("@9:"):
                 cmake_args.append(from_variant("LLVM_ENABLE_Z3_SOLVER", "z3"))
-                cmake_args.append(define("LLVM_Z3_INSTALL_DIR", self.spec["z3"].prefix))
+                if self.spec.satisfies("+z3"):
+                    cmake_args.append(define("LLVM_Z3_INSTALL_DIR", self.spec["z3"].prefix))
 
         if spec.satisfies("+flang"):
             projects.append("flang")
