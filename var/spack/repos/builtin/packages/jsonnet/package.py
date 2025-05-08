@@ -30,10 +30,10 @@ class Jsonnet(MakefilePackage, CMakePackage):
 
     build_system("makefile", conditional("cmake", when="@0.21.0:"), default="makefile")
 
+    conflicts("%gcc@:5.4.99", when="@0.18.0:")
+
     depends_on("c", type="build")
     depends_on("cxx", type="build")
-
-    conflicts("%gcc@:5.4.99", when="@0.18.0:")
 
     with when("build_system=cmake"):
         depends_on("nlohmann-json@3.6.1:")
