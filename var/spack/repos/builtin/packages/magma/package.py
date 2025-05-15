@@ -16,7 +16,7 @@ class Magma(CMakePackage, CudaPackage, ROCmPackage):
     homepage = "https://icl.utk.edu/magma/"
     git = "https://github.com/icl-utk-edu/magma"
     url = "https://icl.utk.edu/projectsfiles/magma/downloads/magma-2.2.0.tar.gz"
-    maintainers("stomov", "luszczek", "G-Ragghianti")
+    maintainers("luszczek", "G-Ragghianti")
 
     tags = ["e4s"]
 
@@ -40,37 +40,20 @@ class Magma(CMakePackage, CudaPackage, ROCmPackage):
     version("2.3.0", sha256="010a4a057d7aa1e57b9426bffc0958f3d06913c9151463737e289e67dd9ea608")
     version("2.2.0", sha256="df5d4ace417e5bf52694eae0d91490c6bde4cde1b0da98e8d400c5c3a70d83a2")
 
-    depends_on("c", type="build")  # generated
-    depends_on("cxx", type="build")  # generated
-    depends_on("fortran", type="build")  # generated
-
     variant("fortran", default=True, description="Enable Fortran bindings support")
     variant("shared", default=True, description="Enable shared library")
     variant("cuda", default=True, description="Build with CUDA")
+
+    depends_on("c", type="build")  # generated
+    depends_on("cxx", type="build")  # generated
+    depends_on("fortran", type="build")  # generated
 
     depends_on("blas")
     depends_on("lapack")
     depends_on("cuda@8:", when="@2.5.1: +cuda")  # See PR #14471
     depends_on("hipblas", when="+rocm")
     depends_on("hipsparse", when="+rocm")
-    # This ensures that rocm-core matches the hip package version in the case that
-    # hip is an external package.
-    for ver in [
-        "5.5.0",
-        "5.5.1",
-        "5.6.0",
-        "5.6.1",
-        "5.7.0",
-        "5.7.1",
-        "6.0.0",
-        "6.0.2",
-        "6.1.0",
-        "6.1.1",
-        "6.1.2",
-        "6.2.0",
-        "6.2.1",
-    ]:
-        depends_on(f"rocm-core@{ver}", when=f"@2.8.0: +rocm ^hip@{ver}")
+    depends_on("rocm-core", when="@2.8.0: +rocm")
     depends_on("python", when="@master", type="build")
 
     conflicts("~cuda", when="~rocm", msg="magma: Either CUDA or HIP support must be enabled")
@@ -210,7 +193,9 @@ class Magma(CMakePackage, CudaPackage, ROCmPackage):
         with working_dir(test_dir):
             pkg_config_path = self.prefix.lib.pkgconfig
             with spack.util.environment.set_env(PKG_CONFIG_PATH=pkg_config_path):
-                make("c")
+                make = self.spec["gmake"].command
+                CC = "hipcc" if self.spec.satisfies("+rocm") else self.compiler.cc
+                make("c", f"CC={CC}")
                 tests = [
                     ("example_sparse", "sparse solver"),
                     ("example_sparse_operator", "sparse operator"),
@@ -234,6 +219,7 @@ class Magma(CMakePackage, CudaPackage, ROCmPackage):
         with working_dir(test_dir):
             pkg_config_path = self.prefix.lib.pkgconfig
             with spack.util.environment.set_env(PKG_CONFIG_PATH=pkg_config_path):
+                make = self.spec["gmake"].command
                 make("fortran")
                 example_f = which("example_f")
                 example_f()

@@ -18,6 +18,7 @@ class Pfunit(CMakePackage):
 
     maintainers("mathomp4", "tclune")
 
+    version("4.12.0", sha256="facbef73b3e225ca552a376d0ec4502881ad0876f706cd0b5cffed8a089b92e4")
     version("4.11.1", sha256="db954ce44e857fe17cf4212f91223d2ab73248de0c3af405e2e1224f92ed8d42")
     version("4.10.0", sha256="ee5e899dfb786bac46e3629b272d120920bafdb7f6a677980fc345f6acda0f99")
     version("4.9.0", sha256="caea019f623d4e02dd3e8442cee88e6087b4c431a2628e9ec2de55b527b51ab6")
@@ -78,9 +79,6 @@ class Pfunit(CMakePackage):
         deprecated=True,
     )
 
-    depends_on("c", type="build")
-    depends_on("fortran", type="build")
-
     variant("mpi", default=False, description="Enable MPI")
     variant(
         "use_comm_world",
@@ -110,6 +108,9 @@ class Pfunit(CMakePackage):
         description="The build type to build",
         values=("Debug", "Release"),
     )
+
+    depends_on("c", type="build")
+    depends_on("fortran", type="build")
 
     depends_on("doxygen", type="build", when="+docs")
 
@@ -233,6 +234,6 @@ class Pfunit(CMakePackage):
                 return value
         raise InstallError("Unsupported compiler.")
 
-    def setup_build_environment(self, env):
+    def setup_build_environment(self, env: EnvironmentModifications) -> None:
         if self.spec.satisfies("@:3"):
             env.set("F90_VENDOR", self.compiler_vendor())

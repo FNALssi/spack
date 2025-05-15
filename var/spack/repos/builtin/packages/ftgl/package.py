@@ -27,11 +27,10 @@ class Ftgl(CMakePackage):
         sticky=True,
         description="C++ standard",
     )
+    variant("shared", default=True, description="Build as a shared library")
 
     depends_on("c", type="build")
     depends_on("cxx", type="build")
-
-    variant("shared", default=True, description="Build as a shared library")
 
     depends_on("cmake@2.8:", type="build")
     depends_on("pkgconfig", type="build")

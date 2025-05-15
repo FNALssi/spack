@@ -38,6 +38,7 @@ class Jsonnet(MakefilePackage, CMakePackage):
     with when("build_system=cmake"):
         depends_on("nlohmann-json@3.6.1:")
 
+    variant("python", default=False, description="Provide Python bindings for jsonnet")
     extends("python", when="+python")
     depends_on("py-setuptools", type=("build",), when="+python")
     depends_on("py-pip", type=("build",), when="+python")

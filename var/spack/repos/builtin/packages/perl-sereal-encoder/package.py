@@ -38,7 +38,7 @@ class PerlSerealEncoder(PerlPackage):
     depends_on("perl-scalar-util", type=("build", "test"))
     depends_on("perl-data-dumper", type=("build", "test"))
 
-    def setup_build_environment(self, env):
+    def setup_build_environment(self, env: EnvironmentModifications) -> None:
         # These are not currently available in Spack
         env.set("SEREAL_USE_BUNDLED_CSNAPPY", "1")
         env.set("SEREAL_USE_BUNDLED_MINIZ", "1")
