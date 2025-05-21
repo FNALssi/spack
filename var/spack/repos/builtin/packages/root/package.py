@@ -936,6 +936,8 @@ class Root(CMakePackage):
             # override with an empty value even though it may lead to link
             # warnings when building against ROOT
             env.unset("MACOSX_DEPLOYMENT_TARGET")
+        # Cleanup.
+        self.sanitize_environments(env)
 
     @property
     def root_library_path(self):
@@ -959,6 +961,8 @@ class Root(CMakePackage):
         env.set("CPPYY_BACKEND_LIBRARY", self.prefix.lib.root.libcppyy_backend)
         if "+rpath" not in self.spec:
             env.prepend_path(self.root_library_path, self.prefix.lib.root)
+        # Cleanup.
+        self.sanitize_environments(env)
 
     def setup_dependent_build_environment(self, env: EnvironmentModifications, dependent_spec):
         env.set("ROOTSYS", self.prefix)
@@ -972,6 +976,8 @@ class Root(CMakePackage):
         if "platform=darwin" in self.spec:
             # Newer deployment targets cause fatal errors in rootcling
             env.unset("MACOSX_DEPLOYMENT_TARGET")
+        # Cleanup.
+        self.sanitize_environments(env)
 
     def setup_dependent_run_environment(self, env: EnvironmentModifications, dependent_spec):
         env.prepend_path("ROOT_INCLUDE_PATH", dependent_spec.prefix.include)
@@ -983,3 +989,26 @@ class Root(CMakePackage):
         for lib_path in [dependent_spec.prefix.lib, dependent_spec.prefix.lib64]:
             if os.path.exists(lib_path):
                 env.prepend_path(self.root_library_path, lib_path)
+        # Cleanup.
+        self.sanitize_environments(env)
+
+    def sanitize_environments(self, env: EnvironmentModifications, *vars):
+        special_separators = {"LDSHARED": " -L"}
+        if not vars:
+            vars = (
+                "PATH",
+                "LDSHARED",
+                "LIBRARY_PATH",
+                "CMAKE_PREFIX_PATH",
+                "ROOT_INCLUDE_PATH",
+                self.root_library_path,
+            )
+        for var in vars:
+            kwargs = {}
+            if var in special_separators:
+                kwargs["separator"] = special_separators[var]
+            env.prune_duplicate_paths(var, **kwargs)
+            if var == "PATH":
+                env.deprioritize_system_paths(var, target=str(self.spec.target), **kwargs)
+            else:
+                env.remove_system_paths(var, **kwargs)
