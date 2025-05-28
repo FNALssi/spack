@@ -246,41 +246,62 @@ The function ``my_package.get_extension_path`` in ``my_package/__init__.py`` mig
 
 .. _platform-scopes:
 
------------------------------------------
-Platform-, OS- and Target-specific Scopes
------------------------------------------
+-------------------------------
+Platform-specific Configuration
+-------------------------------
 
-For each scope above (excluding environment scopes), there can also be
-platform-specific settings.  For example, on most platforms, GCC is
-the preferred compiler.  However, on macOS (darwin), Clang often works
-for more packages, and is set as the default compiler. This
-configuration is set in
-``$(prefix)/etc/spack/defaults/darwin/packages.yaml``. It will take
-precedence over settings in the ``defaults`` scope, but can still be
-overridden by settings in ``system``, ``system/darwin``, ``site``,
-``site/darwin``, ``user``, ``user/darwin``, ``custom``, or
-``custom/darwin``.
+.. warning::
 
-Following this pattern, the scope hierarchy can be further deepened by
-operating system-specific (e.g. `sonoma`, or `almalinux9`) and
-target-specific (e.g. `m1`, or `cascadelake`) scopes. The full scope
-hierarchy is therefore:
+   Prior to v1.0, each scope above -- except environment scopes -- had a
+   corresponding platform-specific scope (e.g., ``defaults/linux``,
+   ``system/windows``). This can now be accomplished through suitably
+   placed :ref:`include.yaml <include-yaml>` file.
 
-#. ``defaults[/<platform>[/<os>[/<target>]]]``
-#. ``system[/<platform>[/<os>[/<target>]]]``
-#. ``site[/<platform>[/<os>[/<target>]]]``
-#. ``user[/<platform>[/<os>[/<target>]]]``
-#. ``custom[/<platform>[/<os>[/<target>]]]``
+There is often a need for platform-specific configuration settings.
+For example, on most platforms, GCC is the preferred compiler. However,
+on macOS (darwin), Clang often works for more packages, and is set as
+the default compiler. This configuration is set in
+``$(prefix)/etc/spack/defaults/darwin/packages.yaml``, which is included
+as by ``$(prefix)/etc/spack/defaults/include.yaml``. Since it is an included
+configuration of the ``defaults`` scope, settings in the ``defaults`` scope
+will take precedence. You can override the values by specifying settings in
+``system``, ``site``, ``user``, or ``custom``, where scope precedence is:
 
-Any scope overrides the ones above it in the directory tree.
+#. ``defaults``
+#. ``system``
+#. ``site``
+#. ``user``
+#. ``custom``
 
-The system config scope has a platform-based hierarchy for sites at
-which ``/etc`` is mounted on multiple heterogeneous machines.
+and settings in each scope taking precedence over those found in configuration
+files listed in the corresponding ``include.yaml`` files.
 
-You can get the name to use for ``<platform>`` by running ``spack arch
---platform``.  Similarly, the names for ``<os>`` and ``<target>`` can be
-obtained with ``spack arch --operating-system``, and ``spack arch
---target``, respectively.
+For example, if ``$(prefix)/etc/spack/defaults/include.yaml`` contains:
+
+.. code-block:: yaml
+
+   include:
+   - path: "${platform}"
+     optional: true
+
+then, on macOS (``darwin``), configuration settings for files under the
+``$(prefix)/etc/spack/defaults/darwin`` directory would be picked up.
+
+.. note::
+
+   You can get the name to use for ``<platform>`` by running ``spack arch
+   --platform``.
+
+Platform-specific configuration files can similarly be set up for the
+``system``, ``site``, and ``user`` scopes by creating an ``include.yaml``
+similar to the one above for ``defaults`` -- under the appropriate
+configuration paths (see :ref:`config-overrides`) and creating a subdirectory
+with the platform name that contains the configuration files.
+
+.. note::
+
+   Site-specific settings are located in configuration files under the
+   ``$(prefix)/etc/spack/`` directory.
 
 .. _config-scope-precedence:
 
@@ -295,6 +316,12 @@ list-valued settings, Spack *prepends* higher-precedence settings to
 lower-precedence settings. Completely ignoring lower-precedence configuration
 options is supported with the ``::`` notation for keys (see
 :ref:`config-overrides` below).
+
+.. note::
+
+   Settings in a scope take precedence over those provided in any included
+   configuration files (i.e., files listed in :ref:`include.yaml <include-yaml>` or
+   an ``include:`` section in ``spack.yaml``).
 
 There are also special notations for string concatenation and precedence override:
 
