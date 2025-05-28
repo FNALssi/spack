@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 import functools
 import os
+import re
 
 import pytest
 
@@ -40,22 +41,36 @@ def config_yaml_v015(mutable_config):
     return functools.partial(_create_config, data=old_data, section="config")
 
 
-def test_config_list_scopes():
-    output = config("list-scopes")
-    assert "command_line" in output
-    assert "_builtin" in output
+def test_config_scopes():
+    output = config("scopes")
+    assert "command_line" in output.split()
+    assert "_builtin" in output.split()
 
 
-def test_config_list_scopes_file():
-    output = config("list-scopes", "--file")
-    assert "site" in output
+def test_config_scopes_path_scopes():
+    output = config("scopes", "--path-scopes")
+    assert "site" in output.split()
+    assert "_builtin" not in output.split()
+
+
+@pytest.mark.parametrize("with_path_scopes", [False, True])
+def test_config_scopes_include(with_path_scopes):
+    scopes_cmd = ["scopes", "--included"]
+    if with_path_scopes:
+        scopes_cmd.append("--path-scopes")
+    output = config(*scopes_cmd)
+    assert not output or all(":" in x for x in output.split())
+
+
+scope_path_re = r"\(([^\)]+)\)"
+
+
+def test_config_scopes_path_section():
+    output = config("scopes", "--included", "--show-paths", "modules")
     assert "_builtin" not in output
-
-
-def test_config_list_scopes_non_platform():
-    output = config("list-scopes", "--non-platform")
-    assert "site" in output
-    assert "user" in output
+    assert "site" not in output
+    paths = (x[1] for x in (re.fullmatch(scope_path_re, s) for s in output.split()) if x)
+    assert all(os.sep in x for x in paths)
 
 
 def test_get_config_scope(mock_low_high_config):
