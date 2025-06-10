@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import argparse
 import json
 import os
 import shutil
@@ -54,8 +55,8 @@ def unicode_escape(path: str) -> str:
     return path.encode("unicode-escape").decode("utf-8")
 
 
-def setup_parser(subparser):
-    setup_parser.parser = subparser
+def setup_parser(subparser: argparse.ArgumentParser) -> None:
+    setattr(setup_parser, "parser", subparser)
     subparsers = subparser.add_subparsers(help="CI sub-commands")
 
     # Dynamic generation of the jobs yaml from a spack environment
@@ -423,7 +424,7 @@ def ci_rebuild(args):
         # jobs in subsequent stages.
         tty.msg("No need to rebuild {0}, found hash match at: ".format(job_spec_pkg_name))
         for match in matches:
-            tty.msg("    {0}".format(match["mirror_url"]))
+            tty.msg("    {0}".format(match.url_and_version.url))
 
         # Now we are done and successful
         return 0
