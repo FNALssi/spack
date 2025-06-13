@@ -85,6 +85,8 @@ import spack.stage
 import spack.store
 import spack.subprocess_context
 import spack.util.executable
+import spack.repo
+
 from spack import traverse
 from spack.context import Context
 from spack.error import InstallError, NoHeadersError, NoLibrariesError
@@ -1064,6 +1066,7 @@ class SetupContext:
             if os.path.isdir(bin_dir):
                 env.prepend_path("PATH", bin_dir)
 
+        spack.repo.PATH.repos
         for cp_dir in spack_repo.builtin.build_systems.cmake.get_cmake_prefix_path(dep.package):
             env.append_path("CMAKE_PREFIX_PATH", cp_dir)
         env.prune_duplicate_paths("CMAKE_PREFIX_PATH")
