@@ -397,3 +397,5 @@ unset _sp_initializing
 export _sp_initializing
 export SPACK_SKIP_MODULES=true
 export SPACK_DISABLE_LOCAL_CONFIG=true
+export SPACK_SKIP_MODULES=true
+export SPACK_DISABLE_LOCAL_CONFIG=true

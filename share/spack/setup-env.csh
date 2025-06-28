@@ -86,3 +86,5 @@ end
 unsetenv _sp_initializing
 setenv SPACK_SKIP_MODULES true
 setenv SPACK_DISABLE_LOCAL_CONFIG true
+setenv SPACK_SKIP_MODULES true
+setenv SPACK_DISABLE_LOCAL_CONFIG true
