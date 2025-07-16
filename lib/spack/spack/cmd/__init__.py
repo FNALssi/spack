@@ -7,22 +7,18 @@ import difflib
 import importlib
 import os
 import re
+import subprocess
 import sys
 from collections import Counter
 from typing import Generator, List, Optional, Sequence, Union
-
-import llnl.string
-import llnl.util.tty as tty
-from llnl.util.filesystem import join_path
-from llnl.util.lang import attr_setdefault, index_by
-from llnl.util.tty.colify import colify
-from llnl.util.tty.color import colorize
 
 import spack.concretize
 import spack.config  # breaks a cycle.
 import spack.environment as ev
 import spack.error
 import spack.extensions
+import spack.llnl.string
+import spack.llnl.util.tty as tty
 import spack.paths
 import spack.repo
 import spack.spec
@@ -32,6 +28,10 @@ import spack.traverse as traverse
 import spack.user_environment as uenv
 import spack.util.spack_json as sjson
 import spack.util.spack_yaml as syaml
+from spack.llnl.util.filesystem import join_path
+from spack.llnl.util.lang import attr_setdefault, index_by
+from spack.llnl.util.tty.colify import colify
+from spack.llnl.util.tty.color import colorize
 
 from ..enums import InstallRecordStatus
 
@@ -568,7 +568,7 @@ def print_how_many_pkgs(specs, pkg_type="", suffix=""):
             category, e.g. if pkg_type is "installed" then the message
             would be "3 installed packages"
     """
-    tty.msg("%s" % llnl.string.plural(len(specs), pkg_type + " package") + suffix)
+    tty.msg("%s" % spack.llnl.string.plural(len(specs), pkg_type + " package") + suffix)
 
 
 def spack_is_git_repo():
@@ -706,6 +706,16 @@ def first_line(docstring):
     return docstring.split("\n")[0]
 
 
+def converted_arg_length(arg: str):
+    if sys.platform == "win32":
+        # An argument may have extra characters inserted for a command
+        # line invocation (e.g. on Windows, an argument with a space
+        # is quoted)
+        return len(subprocess.list2cmdline([arg]))
+    else:
+        return len(arg)
+
+
 def group_arguments(
     args: Sequence[str],
     *,
@@ -736,7 +746,9 @@ def group_arguments(
 
     """
     if max_group_length is None:
-        max_group_length = 32768  # default to the Windows limit
+        # Windows limit is 32767, including null terminator (not measured by len)
+        # so max length is 32766
+        max_group_length = 32766
         if hasattr(os, "sysconf"):  # sysconf is only on unix
             try:
                 # returns -1 if an option isn't present (soem older POSIXes)
@@ -748,7 +760,7 @@ def group_arguments(
     group: List[str] = []
     grouplen, space = prefix_length, 0
     for arg in args:
-        arglen = len(arg)
+        arglen = converted_arg_length(arg)
         if arglen > max_group_length:
             raise ValueError(f"Argument is longer than max command line size: '{arg}'")
         if arglen + prefix_length > max_group_length:
