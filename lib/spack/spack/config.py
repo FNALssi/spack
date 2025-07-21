@@ -26,7 +26,6 @@ When read in, Spack validates configurations with jsonschemas.  The
 schemas are in submodules of :py:mod:`spack.schema`.
 
 """
-import collections
 import contextlib
 import copy
 import functools
@@ -34,11 +33,10 @@ import os
 import os.path
 import re
 import sys
+from collections import defaultdict
 from typing import Any, Callable, Dict, Generator, List, NamedTuple, Optional, Tuple, Union
 
-import jsonschema
-
-from llnl.util import filesystem, lang, tty
+from spack.vendor import jsonschema
 
 import spack.error
 import spack.paths
@@ -59,10 +57,12 @@ import spack.schema.mirrors
 import spack.schema.modules
 import spack.schema.packages
 import spack.schema.repos
+import spack.schema.toolchains
 import spack.schema.upstreams
 import spack.schema.view
 import spack.util.remote_file_cache as rfc_util
 import spack.util.spack_yaml as syaml
+from spack.llnl.util import filesystem, lang, tty
 from spack.util.cpus import cpus_available
 from spack.util.spack_yaml import get_mark_from_yaml_data
 
@@ -86,6 +86,7 @@ SECTION_SCHEMAS: Dict[str, Any] = {
     "bootstrap": spack.schema.bootstrap.schema,
     "ci": spack.schema.ci.schema,
     "cdash": spack.schema.cdash.schema,
+    "toolchains": spack.schema.toolchains.schema,
 }
 
 # Same as above, but including keys for environments
@@ -447,7 +448,7 @@ class Configuration:
 
     def __init__(self) -> None:
         self.scopes = lang.PriorityOrderedMapping()
-        self.format_updates: Dict[str, List[ConfigScope]] = collections.defaultdict(list)
+        self.updated_scopes_by_section: Dict[str, List[ConfigScope]] = defaultdict(list)
 
     def ensure_unwrapped(self) -> "Configuration":
         """Ensure we unwrap this object from any dynamic wrapper (like Singleton)"""
@@ -587,7 +588,7 @@ class Configuration:
             scope: scope to be updated
             force: force the update
         """
-        if self.format_updates.get(section) and not force:
+        if self.updated_scopes_by_section.get(section) and not force:
             msg = (
                 'The "{0}" section of the configuration needs to be written'
                 " to disk, but is currently using a deprecated format. "
@@ -660,26 +661,24 @@ class Configuration:
         else:
             scopes = list(self.scopes.values())
 
-        merged_section = syaml.syaml_dict()
-        for scope in scopes:
+        merged_section: Dict[str, Any] = syaml.syaml_dict()
+        updated_scopes = []
+        for config_scope in scopes:
             # read potentially cached data from the scope.
-
-            data = scope.get_section(section)
+            data = config_scope.get_section(section)
 
             # Skip empty configs
-            if not data or not isinstance(data, dict):
+            if not isinstance(data, dict) or section not in data:
                 continue
 
-            if section not in data:
-                continue
-
-            # We might be reading configuration files in an old format,
-            # thus read data and update it in memory if need be.
-            changed = _update_in_memory(data, section)
-            if changed:
-                self.format_updates[section].append(scope)
+            # If configuration is in an old format, transform it and keep track of the scope that
+            # may need to be written out to disk.
+            if _update_in_memory(data, section):
+                updated_scopes.append(config_scope)
 
             merged_section = spack.schema.merge_yaml(merged_section, data)
+
+        self.updated_scopes_by_section[section] = updated_scopes
 
         # no config files -- empty config.
         if section not in merged_section:
@@ -1496,26 +1495,19 @@ def _update_in_memory(data: YamlConfigDict, section: str) -> bool:
     Returns:
         True if the data was changed, False otherwise
     """
-    update_fn = ensure_latest_format_fn(section)
-    changed = update_fn(data[section])
-    return changed
+    return ensure_latest_format_fn(section)(data)
 
 
 def ensure_latest_format_fn(section: str) -> Callable[[YamlConfigDict], bool]:
-    """Return a function that takes as input a dictionary read from
-    a configuration file and update it to the latest format.
+    """Return a function that takes a config dictionary and update it to the latest format.
 
-    The function returns True if there was any update, False otherwise.
+    The function returns True iff there was any update.
 
     Args:
-        section: section of the configuration e.g. "packages",
-            "config", etc.
+        section: section of the configuration e.g. "packages", "config", etc.
     """
-    # The line below is based on the fact that every module we need
-    # is already imported at the top level
-    section_module = getattr(spack.schema, section)
-    update_fn = getattr(section_module, "update", lambda x: False)
-    return update_fn
+    # Every module we need is already imported at the top level, so getattr should not raise
+    return getattr(getattr(spack.schema, section), "update", lambda _: False)
 
 
 @contextlib.contextmanager

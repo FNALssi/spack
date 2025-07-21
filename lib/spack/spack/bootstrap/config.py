@@ -8,8 +8,6 @@ import os
 import sys
 from typing import Any, Dict, Generator, MutableSequence, Sequence
 
-from llnl.util import tty
-
 import spack.compilers.config
 import spack.config
 import spack.environment
@@ -20,6 +18,7 @@ import spack.repo
 import spack.spec
 import spack.store
 import spack.util.path
+from spack.llnl.util import tty
 
 #: Reference counter for the bootstrapping configuration context manager
 _REF_COUNT = 0
@@ -117,8 +116,11 @@ def _read_and_sanitize_configuration() -> Dict[str, Any]:
     # to have it in the configuration).
     config_yaml = spack.config.get("config")
     config_yaml.pop("install_tree", None)
-    user_configuration = {"bootstrap": spack.config.get("bootstrap"), "config": config_yaml}
-    return user_configuration
+    return {
+        "bootstrap": spack.config.get("bootstrap"),
+        "config": config_yaml,
+        "repos": spack.config.get("repos"),
+    }
 
 
 def _bootstrap_config_scopes() -> Sequence["spack.config.ConfigScope"]:
@@ -143,21 +145,23 @@ def _add_compilers_if_missing() -> None:
 
 @contextlib.contextmanager
 def _ensure_bootstrap_configuration() -> Generator:
+    spack.repo.PATH.repos  # ensure this is instantiated from current config.
     spack.store.ensure_singleton_created()
     bootstrap_store_path = store_path()
     user_configuration = _read_and_sanitize_configuration()
     with spack.environment.no_active_environment(), spack.platforms.use_platform(
         spack.platforms.real_host()
-    ), spack.repo.use_repositories(spack.paths.packages_path), spack.config.use_configuration(
+    ), spack.config.use_configuration(
         # Default configuration scopes excluding command line and builtin
         *_bootstrap_config_scopes()
     ), spack.store.use_store(
         bootstrap_store_path, extra_data={"padded_length": 0}
     ):
+        spack.config.set("bootstrap", user_configuration["bootstrap"])
+        spack.config.set("config", user_configuration["config"])
+        spack.config.set("repos", user_configuration["repos"])
         # We may need to compile code from sources, so ensure we
         # have compilers for the current platform
         _add_compilers_if_missing()
-        spack.config.set("bootstrap", user_configuration["bootstrap"])
-        spack.config.set("config", user_configuration["config"])
         with spack.modules.disable_modules(), spack_python_interpreter():
             yield

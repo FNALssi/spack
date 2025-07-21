@@ -2,16 +2,13 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import argparse
 import json
 import os
 import shutil
 import sys
 from typing import Dict
 from urllib.parse import urlparse, urlunparse
-
-import llnl.util.filesystem as fs
-import llnl.util.tty.color as clr
-from llnl.util import tty
 
 import spack.binary_distribution as bindist
 import spack.ci as spack_ci
@@ -23,6 +20,8 @@ import spack.environment as ev
 import spack.error
 import spack.fetch_strategy
 import spack.hash_types as ht
+import spack.llnl.util.filesystem as fs
+import spack.llnl.util.tty.color as clr
 import spack.mirrors.mirror
 import spack.package_base
 import spack.repo
@@ -34,6 +33,7 @@ import spack.util.timer as timer
 import spack.util.url as url_util
 import spack.util.web as web_util
 import spack.version
+from spack.llnl.util import tty
 
 description = "manage continuous integration pipelines"
 section = "build"
@@ -54,8 +54,8 @@ def unicode_escape(path: str) -> str:
     return path.encode("unicode-escape").decode("utf-8")
 
 
-def setup_parser(subparser):
-    setup_parser.parser = subparser
+def setup_parser(subparser: argparse.ArgumentParser) -> None:
+    setattr(setup_parser, "parser", subparser)
     subparsers = subparser.add_subparsers(help="CI sub-commands")
 
     # Dynamic generation of the jobs yaml from a spack environment
@@ -85,6 +85,23 @@ def setup_parser(subparser):
         action="store_false",
         dest="prune_dag",
         default=True,
+        help="process up-to-date specs\n\n"
+        "generate jobs for specs even when they are up-to-date on the mirror",
+    )
+    prune_unaffected_group = generate.add_mutually_exclusive_group()
+    prune_unaffected_group.add_argument(
+        "--prune-unaffected",
+        action="store_true",
+        dest="prune_unaffected",
+        default=False,
+        help="skip up-to-date specs\n\n"
+        "do not generate jobs for specs that are up-to-date on the mirror",
+    )
+    prune_unaffected_group.add_argument(
+        "--no-prune-unaffected",
+        action="store_false",
+        dest="prune_unaffected",
+        default=False,
         help="process up-to-date specs\n\n"
         "generate jobs for specs even when they are up-to-date on the mirror",
     )
@@ -423,7 +440,7 @@ def ci_rebuild(args):
         # jobs in subsequent stages.
         tty.msg("No need to rebuild {0}, found hash match at: ".format(job_spec_pkg_name))
         for match in matches:
-            tty.msg("    {0}".format(match["mirror_url"]))
+            tty.msg("    {0}".format(match.url_and_version.url))
 
         # Now we are done and successful
         return 0

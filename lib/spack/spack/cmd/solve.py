@@ -2,11 +2,9 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+import argparse
 import re
 import sys
-
-import llnl.util.tty as tty
-import llnl.util.tty.color as color
 
 import spack
 import spack.cmd
@@ -14,6 +12,8 @@ import spack.cmd.spec
 import spack.config
 import spack.environment
 import spack.hash_types as ht
+import spack.llnl.util.tty as tty
+import spack.llnl.util.tty.color as color
 import spack.solver.asp as asp
 import spack.spec
 
@@ -25,7 +25,7 @@ level = "long"
 show_options = ("asp", "opt", "output", "solutions")
 
 
-def setup_parser(subparser):
+def setup_parser(subparser: argparse.ArgumentParser) -> None:
     # Solver arguments
     subparser.add_argument(
         "--show",

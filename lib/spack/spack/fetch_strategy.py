@@ -36,16 +36,12 @@ import urllib.response
 from pathlib import PurePath
 from typing import Callable, List, Mapping, Optional
 
-import llnl.url
-import llnl.util
-import llnl.util.filesystem as fs
-import llnl.util.tty as tty
-from llnl.string import comma_and, quote
-from llnl.util.filesystem import get_single_file, mkdirp, temp_cwd, working_dir
-from llnl.util.symlink import symlink
-
 import spack.config
 import spack.error
+import spack.llnl.url
+import spack.llnl.util
+import spack.llnl.util.filesystem as fs
+import spack.llnl.util.tty as tty
 import spack.oci.opener
 import spack.util.archive
 import spack.util.crypto as crypto
@@ -54,6 +50,8 @@ import spack.util.url as url_util
 import spack.util.web as web_util
 import spack.version
 import spack.version.git_ref_lookup
+from spack.llnl.string import comma_and, quote
+from spack.llnl.util.filesystem import get_single_file, mkdirp, symlink, temp_cwd, working_dir
 from spack.util.compression import decompressor_for
 from spack.util.executable import CommandNotFoundError, Executable, which
 
@@ -551,7 +549,7 @@ class URLFetchStrategy(FetchStrategy):
 
         # TODO: replace this by mime check.
         if not self.extension:
-            self.extension = llnl.url.determine_url_file_extension(self.url)
+            self.extension = spack.llnl.url.determine_url_file_extension(self.url)
 
         if self.stage.expanded:
             tty.debug("Source already staged to %s" % self.stage.source_path)
@@ -703,7 +701,7 @@ class VCSFetchStrategy(FetchStrategy):
 
     @_needs_stage
     def archive(self, destination, *, exclude: Optional[str] = None):
-        assert llnl.url.extension_from_path(destination) == "tar.gz"
+        assert spack.llnl.url.extension_from_path(destination) == "tar.gz"
         assert self.stage.source_path.startswith(self.stage.path)
         # We need to prepend this dir name to every entry of the tarfile
         top_level_dir = PurePath(self.stage.srcdir or os.path.basename(self.stage.source_path))
@@ -1129,9 +1127,6 @@ class GitFetchStrategy(VCSFetchStrategy):
                 if not spack.config.get("config:debug"):
                     args.insert(1, "--quiet")
                 git(*args)
-
-    def archive(self, destination):
-        super().archive(destination, exclude=".git")
 
     @_needs_stage
     def reset(self):
@@ -1710,13 +1705,15 @@ def for_package_version(pkg, version=None):
         version = pkg.version
 
     # if it's a commit, we must use a GitFetchStrategy
-    if isinstance(version, spack.version.GitVersion):
+    commit_sha = pkg.spec.variants.get("commit", None)
+    if isinstance(version, spack.version.GitVersion) or commit_sha:
         if not hasattr(pkg, "git"):
             raise spack.error.FetchError(
                 f"Cannot fetch git version for {pkg.name}. Package has no 'git' attribute"
             )
         # Populate the version with comparisons to other commits
-        version.attach_lookup(spack.version.git_ref_lookup.GitRefLookup(pkg.name))
+        if isinstance(version, spack.version.GitVersion):
+            version.attach_lookup(spack.version.git_ref_lookup.GitRefLookup(pkg.name))
 
         # For GitVersion, we have no way to determine whether a ref is a branch or tag
         # Fortunately, we handle branches and tags identically, except tags are
@@ -1724,16 +1721,28 @@ def for_package_version(pkg, version=None):
         # We call all non-commit refs tags in this context, at the cost of a slight
         # performance hit for branches on older versions of git.
         # Branches cannot be cached, so we tell the fetcher not to cache tags/branches
-        ref_type = "commit" if version.is_commit else "tag"
-        kwargs = {"git": pkg.git, ref_type: version.ref, "no_cache": True}
 
-        kwargs["submodules"] = getattr(pkg, "submodules", False)
+        # TODO(psakiev) eventually we should  only need to clone based on the commit
+        ref_type = None
+        ref_value = None
+        if commit_sha:
+            ref_type = "commit"
+            ref_value = commit_sha.value
+        else:
+            ref_type = "commit" if version.is_commit else "tag"
+            ref_value = version.ref
+
+        kwargs = {ref_type: ref_value, "no_cache": ref_type != "commit"}
+        kwargs["git"] = pkg.version_or_package_attr("git", version)
+        kwargs["submodules"] = pkg.version_or_package_attr("submodules", version, False)
+        kwargs["git_sparse_paths"] = pkg.version_or_package_attr("git_sparse_paths", version, None)
 
         # if the ref_version is a known version from the package, use that version's
-        # submodule specifications
-        ref_version_attributes = pkg.versions.get(pkg.version.ref_version)
-        if ref_version_attributes:
-            kwargs["submodules"] = ref_version_attributes.get("submodules", kwargs["submodules"])
+        # attributes
+        ref_version = getattr(pkg.version, "ref_version", None)
+        if ref_version:
+            kwargs["git"] = pkg.version_or_package_attr("git", ref_version)
+            kwargs["submodules"] = pkg.version_or_package_attr("submodules", ref_version, False)
 
         fetcher = GitFetchStrategy(**kwargs)
         return fetcher

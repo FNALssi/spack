@@ -17,26 +17,25 @@ from typing import Dict, Generator, List, Optional, Set, Tuple
 from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request
 
-import llnl.util.filesystem as fs
-import llnl.util.tty as tty
-from llnl.util.lang import memoized
-
 import spack.binary_distribution as bindist
 import spack.config as cfg
 import spack.deptypes as dt
 import spack.environment as ev
 import spack.error
+import spack.llnl.util.filesystem as fs
+import spack.llnl.util.tty as tty
 import spack.mirrors.mirror
 import spack.schema
 import spack.spec
 import spack.util.compression as compression
 import spack.util.spack_yaml as syaml
-import spack.util.url as url_util
 import spack.util.web as web_util
 from spack import traverse
+from spack.llnl.util.lang import memoized
 from spack.reporters import CDash, CDashConfiguration
 from spack.reporters.cdash import SPACK_CDASH_TIMEOUT
 from spack.reporters.cdash import build_stamp as cdash_build_stamp
+from spack.url_buildcache import get_url_buildcache_class
 
 IS_WINDOWS = sys.platform == "win32"
 SPACK_RESERVED_TAGS = ["public", "protected", "notary"]
@@ -179,33 +178,13 @@ def write_pipeline_manifest(specs, src_prefix, dest_prefix, output_file):
 
     for release_spec in specs:
         release_spec_dag_hash = release_spec.dag_hash()
-        # TODO: This assumes signed version of the spec
-        buildcache_copies[release_spec_dag_hash] = [
-            {
-                "src": url_util.join(
-                    src_prefix,
-                    bindist.build_cache_relative_path(),
-                    bindist.tarball_name(release_spec, ".spec.json.sig"),
-                ),
-                "dest": url_util.join(
-                    dest_prefix,
-                    bindist.build_cache_relative_path(),
-                    bindist.tarball_name(release_spec, ".spec.json.sig"),
-                ),
-            },
-            {
-                "src": url_util.join(
-                    src_prefix,
-                    bindist.build_cache_relative_path(),
-                    bindist.tarball_path_name(release_spec, ".spack"),
-                ),
-                "dest": url_util.join(
-                    dest_prefix,
-                    bindist.build_cache_relative_path(),
-                    bindist.tarball_path_name(release_spec, ".spack"),
-                ),
-            },
-        ]
+        cache_class = get_url_buildcache_class(
+            layout_version=bindist.CURRENT_BUILD_CACHE_LAYOUT_VERSION
+        )
+        buildcache_copies[release_spec_dag_hash] = {
+            "src": cache_class.get_manifest_url(release_spec, src_prefix),
+            "dest": cache_class.get_manifest_url(release_spec, dest_prefix),
+        }
 
     target_dir = os.path.dirname(output_file)
 
@@ -304,56 +283,33 @@ class CDashHandler:
         reports = fs.join_path(source, "*_Test*.xml")
         copy_files_to_artifacts(reports, dest)
 
-    def create_buildgroup(self, headers, url, group_name, group_type):
-        data = {"newbuildgroup": group_name, "project": self.project, "type": group_type}
-
+    def create_buildgroup(self):
+        """Create the CDash buildgroup if it does not already exist."""
+        headers = {
+            "Authorization": f"Bearer {self.auth_token}",
+            "Content-Type": "application/json",
+        }
+        data = {"newbuildgroup": self.build_group, "project": self.project, "type": "Daily"}
         enc_data = json.dumps(data).encode("utf-8")
+        request = Request(f"{self.url}/api/v1/buildgroup.php", data=enc_data, headers=headers)
 
-        request = Request(url, data=enc_data, headers=headers)
+        response_text = None
+        group_id = None
 
         try:
             response_text = _urlopen(request, timeout=SPACK_CDASH_TIMEOUT).read()
         except OSError as e:
             tty.warn(f"Failed to create CDash buildgroup: {e}")
-            return None
 
-        try:
-            response_json = json.loads(response_text)
-            return response_json["id"]
-        except (json.JSONDecodeError, KeyError) as e:
-            tty.warn(f"Failed to parse CDash response: {e}")
-            return None
+        if response_text:
+            try:
+                response_json = json.loads(response_text)
+                group_id = response_json["id"]
+            except (json.JSONDecodeError, KeyError) as e:
+                tty.warn(f"Failed to parse CDash response: {e}")
 
-    def populate_buildgroup(self, job_names):
-        url = f"{self.url}/api/v1/buildgroup.php"
-
-        headers = {
-            "Authorization": f"Bearer {self.auth_token}",
-            "Content-Type": "application/json",
-        }
-
-        parent_group_id = self.create_buildgroup(headers, url, self.build_group, "Daily")
-        group_id = self.create_buildgroup(headers, url, f"Latest {self.build_group}", "Latest")
-
-        if not parent_group_id or not group_id:
-            tty.warn(f"Failed to create or retrieve buildgroups for {self.build_group}")
-            return
-
-        data = {
-            "dynamiclist": [
-                {"match": name, "parentgroupid": parent_group_id, "site": self.site}
-                for name in job_names
-            ]
-        }
-
-        enc_data = json.dumps(data).encode("utf-8")
-
-        request = Request(url, data=enc_data, headers=headers, method="PUT")
-
-        try:
-            _urlopen(request, timeout=SPACK_CDASH_TIMEOUT)
-        except OSError as e:
-            tty.warn(f"Failed to populate CDash buildgroup: {e}")
+        if not group_id:
+            tty.warn(f"Failed to create or retrieve buildgroup for {self.build_group}")
 
     def report_skipped(self, spec: spack.spec.Spec, report_dir: str, reason: Optional[str]):
         """Explicitly report skipping testing of a spec (e.g., it's CI
@@ -403,6 +359,7 @@ class PipelineOptions:
         untouched_pruning_dependent_depth: Optional[int] = None,
         prune_untouched: bool = False,
         prune_up_to_date: bool = True,
+        prune_unaffected: bool = True,
         prune_external: bool = True,
         stack_name: Optional[str] = None,
         pipeline_type: Optional[PipelineType] = None,
@@ -439,6 +396,7 @@ class PipelineOptions:
         self.untouched_pruning_dependent_depth = untouched_pruning_dependent_depth
         self.prune_untouched = prune_untouched
         self.prune_up_to_date = prune_up_to_date
+        self.prune_unaffected = prune_unaffected
         self.prune_external = prune_external
         self.stack_name = stack_name
         self.pipeline_type = pipeline_type

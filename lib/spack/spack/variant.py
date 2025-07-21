@@ -12,10 +12,9 @@ import inspect
 import itertools
 from typing import Any, Callable, Collection, Iterable, List, Optional, Tuple, Type, Union
 
-import llnl.util.lang as lang
-import llnl.util.tty.color
-
 import spack.error
+import spack.llnl.util.lang as lang
+import spack.llnl.util.tty.color
 import spack.spec
 import spack.spec_parser
 
@@ -23,12 +22,16 @@ import spack.spec_parser
 RESERVED_NAMES = {
     "arch",
     "architecture",
+    "branch",
+    "commit",
     "dev_path",
     "namespace",
     "operating_system",
     "os",
     "patches",
     "platform",
+    "ref",
+    "tag",
     "target",
 }
 
@@ -208,7 +211,7 @@ class Variant:
         else:
             return VariantType.SINGLE
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"Variant('{self.name}', "
             f"default='{self.default}', "
@@ -491,14 +494,14 @@ class DisjointSetsOfValues(collections.abc.Sequence):
         *sets (list): mutually exclusive sets of values
     """
 
-    _empty_set = set(("none",))
+    _empty_set = {"none"}
 
-    def __init__(self, *sets):
+    def __init__(self, *sets: Tuple[str, ...]) -> None:
         self.sets = [set(_flatten(x)) for x in sets]
 
         # 'none' is a special value and can appear only in a set of
         # a single element
-        if any("none" in s and s != set(("none",)) for s in self.sets):
+        if any("none" in s and s != {"none"} for s in self.sets):
             raise spack.error.SpecError(
                 "The value 'none' represents the empty set,"
                 " and must appear alone in a set. Use the "
@@ -576,7 +579,7 @@ class DisjointSetsOfValues(collections.abc.Sequence):
 
             format_args = {"variant": variant_name, "package": pkg_name, "values": values}
             msg = self.error_fmt + " @*r{{[{package}, variant '{variant}']}}"
-            msg = llnl.util.tty.color.colorize(msg.format(**format_args))
+            msg = spack.llnl.util.tty.color.colorize(msg.format(**format_args))
             raise spack.error.SpecError(msg)
 
         return _disjoint_set_validator
@@ -602,27 +605,37 @@ def any_combination_of(*values):
     values, and also allows the user to specify 'none' (as a string) to choose
     none of them.
 
-    It is up to the package implementation to handle the value 'none'
-    specially, if at all.
+    It is up to the package implementation to handle the value `"none"` specially, if at all.
 
     Args:
         *values: allowed variant values
 
+    Example::
+
+        variant("cuda_arch", values=any_combination_of("10", "11"))
+
     Returns:
-        a properly initialized instance of DisjointSetsOfValues
+        a properly initialized instance of :class:`~spack.variant.DisjointSetsOfValues`
     """
     return _a_single_value_or_a_combination("none", *values)
 
 
 def auto_or_any_combination_of(*values):
     """Multi-valued variant that allows any combination of a set of values
-    (but not the empty set) or 'auto'.
+    (but not the empty set) or `"auto"`.
 
     Args:
         *values: allowed variant values
 
+    Example::
+
+       variant(
+           "file_systems",
+           values=auto_or_any_combination_of("lustre", "gpfs", "nfs", "ufs"),
+       )
+
     Returns:
-        a properly initialized instance of DisjointSetsOfValues
+        a properly initialized instance of :class:`~spack.variant.DisjointSetsOfValues`
     """
     return _a_single_value_or_a_combination("auto", *values)
 
@@ -641,7 +654,7 @@ def disjoint_sets(*sets):
         *sets:
 
     Returns:
-        a properly initialized instance of DisjointSetsOfValues
+        a properly initialized instance of :class:`~spack.variant.DisjointSetsOfValues`
     """
     return DisjointSetsOfValues(*sets).allow_empty_set().with_default("none")
 

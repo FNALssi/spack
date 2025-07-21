@@ -2,15 +2,15 @@
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 import os.path
+import pathlib
 import sys
 
 import pytest
 
-import llnl.util.tty as tty
-from llnl.util.filesystem import join_path
-
 import spack.config
+import spack.llnl.util.tty as tty
 import spack.util.remote_file_cache as rfc_util
+from spack.llnl.util.filesystem import join_path
 
 github_url = "https://github.com/fake/fake/{0}/develop"
 gitlab_url = "https://gitlab.fake.io/user/repo/-/blob/config/defaults"
@@ -52,9 +52,9 @@ def test_rfc_remote_local_path_no_dest():
 
 
 packages_yaml_sha256 = (
-    "8b69d9c6e983dfb8bac2ddc3910a86265cffdd9c85f905c716d426ec5b0d9847"
+    "6a1b26c857ca7e5bcd7342092e2f218da43d64b78bd72771f603027ea3c8b4af"
     if sys.platform != "win32"
-    else "182a5cdfdd88f50be23e55607b46285854c664c064e5a9f3f1e0200ebca6a1db"
+    else "ae3239d769f9e6dc137a998489b0d44c70b03e21de4ecd6a623a3463a1a5c3f4"
 )
 
 
@@ -76,7 +76,7 @@ packages_yaml_sha256 = (
     ],
 )
 def test_rfc_remote_local_path(
-    tmpdir, mutable_empty_config, mock_fetch_url_text, url, sha256, err, msg
+    tmp_path: pathlib.Path, mutable_empty_config, mock_fetch_url_text, url, sha256, err, msg
 ):
     def _has_content(filename):
         # The first element of all configuration files for this test happen to
@@ -91,7 +91,7 @@ def test_rfc_remote_local_path(
         return False
 
     def _dest_dir():
-        return join_path(tmpdir.strpath, "cache")
+        return join_path(str(tmp_path), "cache")
 
     if err is not None:
         with spack.config.override("config:url_fetch_method", "curl"):
