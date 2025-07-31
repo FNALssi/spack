@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      Learn how to configure Spack using its flexible YAML-based system. This guide covers the different configuration scopes and provides links to detailed documentation for each configuration file, helping you customize Spack to your specific needs.
+
 .. _configuration:
 
 ===================
@@ -48,8 +52,7 @@ corresponding to its name. So, ``config.yaml`` starts with ``config:``,
 .. tip::
 
    Validation and autocompletion of Spack config files can be enabled in
-   your editor with the YAML language server. See `spack/schemas
-   <https://github.com/spack/schemas>`_ for more information.
+   your editor using `JSON Schema Store <https://www.schemastore.org/>`_.
 
 .. _configuration-scopes:
 

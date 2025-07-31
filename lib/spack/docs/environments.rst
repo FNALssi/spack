@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      Learn how to use Spack environments to manage reproducible software stacks, making it easy to share and recreate specific sets of packages and their dependencies.
+
 .. _environments:
 
 =====================================
@@ -141,6 +145,18 @@ guaranteed to initially have the same concrete specs as the original.
    If the path is not under the ``$SPACK_ROOT/var/spack/environments``
    directory then the source is referred to as an
    :ref:`independent environment <independent_environments>`.
+
+The name of an environment can be a nested path to help organize environments
+via subdirectories.
+
+.. code-block:: console
+
+   $ spack env create projectA/configA/myenv
+
+This will create a managed environment under
+``$environments_root/projectA/configA/myenv``. Changing ``environment_root``
+can therefore also be used to make a whole group of nested environments
+available.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 Activating an Environment
