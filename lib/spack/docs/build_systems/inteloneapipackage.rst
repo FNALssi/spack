@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      A guide to using the Intel oneAPI packages in Spack, including how to build with icx, use the oneAPI Spack environment, and configure externally installed oneAPI tools.
+
 .. _inteloneapipackage:
 
 
@@ -9,12 +13,6 @@
 IntelOneapi
 ===========
 
-
-.. contents::
-
-
-oneAPI packages in Spack
-========================
 
 Spack can install and use the Intel oneAPI products. You may either
 use Spack to install the oneAPI tools or use the `Intel

@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      Learn how to set up and manage package repositories in Spack, enabling you to maintain custom packages and override built-in ones.
+
 .. _repositories:
 
 =================================
@@ -140,7 +144,6 @@ If the ``git`` URL is defined in a lower-precedence configuration (like Spack's 
       destination: ~/spack-packages
 
 **Updating and pinning.**
-
 Repos can be pinned to a git branch, tag, or commit.
 
 .. code-block:: yaml
@@ -311,9 +314,9 @@ Packages differing only by namespace will have different hashes:
 
 All Spack commands that take a package :ref:`spec <sec-specs>` also accept a fully qualified spec with a namespace, allowing you to be specific:
 
-.. code-block:: console
+.. code-block:: spec
 
-  spack uninstall llnl.comp.mpich
+  $ spack uninstall llnl.comp.mpich
 
 -------------------------------------
 Search Order and Overriding Packages
@@ -332,15 +335,16 @@ Suppose your effective (merged) ``repos.yaml`` implies the following order:
 3.  ``builtin`` (Spack's default packages from `spack/spack-packages`)
 
 And the packages are:
-  +--------------+------------------------------------------------+-----------------------------+
-  | Namespace    | Source                                         | Packages                    |
-  +==============+================================================+=============================+
-  | ``proto``    | ``~/my_spack_repos/spack_repo/proto_repo``     | ``mpich``                   |
-  +--------------+------------------------------------------------+-----------------------------+
-  | ``llnl``     | ``/usr/local/repos/spack_repo/llnl_repo``      | ``hdf5``                    |
-  +--------------+------------------------------------------------+-----------------------------+
-  | ``builtin``  | `spack/spack-packages` (Git)                   | ``mpich``, ``hdf5``, others |
-  +--------------+------------------------------------------------+-----------------------------+
+
++--------------+------------------------------------------------+-----------------------------+
+| Namespace    | Source                                         | Packages                    |
++==============+================================================+=============================+
+| ``proto``    | ``~/my_spack_repos/spack_repo/proto_repo``     | ``mpich``                   |
++--------------+------------------------------------------------+-----------------------------+
+| ``llnl``     | ``/usr/local/repos/spack_repo/llnl_repo``      | ``hdf5``                    |
++--------------+------------------------------------------------+-----------------------------+
+| ``builtin``  | `spack/spack-packages` (Git)                   | ``mpich``, ``hdf5``, others |
++--------------+------------------------------------------------+-----------------------------+
 
 If ``hdf5`` depends on ``mpich``:
 
@@ -355,7 +359,7 @@ You can force a particular repository's package using a fully qualified name:
 
 To see which repositories will be used for a build *before* installing, use ``spack spec -N``:
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack spec -N hdf5
    llnl.hdf5@1.10.0
@@ -529,14 +533,11 @@ This allows you to easily extend or subclass package classes from other reposito
 
 .. code-block:: python
 
-   # In your custom repository (e.g., namespace 'mycustom')
-   # in a package file, e.g., mycustom_mpich/package.py
-
-   from spack.package_base import PackageBase # Or other base class
+   # In a package file (e.g. my_custom_mpich/package.py) in your custom repo
    # Import the original Mpich class from the 'builtin' repository
    from spack_repo.builtin.packages.mpich.package import Mpich as BuiltinMpich
 
-   class MycustomMpich(BuiltinMpich):
+   class MyCustomMpich(BuiltinMpich):
        # Override versions, variants, or methods from BuiltinMpich
        version("3.5-custom", sha256="...")
 

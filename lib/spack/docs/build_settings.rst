@@ -2,6 +2,9 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      Understand how to control the build process in Spack by customizing package-specific build settings and environment variables.
 
 .. _concretizer-options:
 
@@ -97,7 +100,7 @@ to enable reuse for a single installation, or:
 
 .. code-block:: console
 
-   spack install --fresh <spec>
+   $ spack install --fresh <spec>
 
 to do a fresh install if ``reuse`` is enabled by default.
 

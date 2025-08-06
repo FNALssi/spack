@@ -2,6 +2,9 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      A guide to setting up and using Spack on Windows, including installing prerequisites and configuring the environment.
 
 .. _windows_support:
 
@@ -17,15 +20,17 @@ you through the steps needed to install Spack and start running it on a fresh Wi
 Step 1: Install prerequisites
 -----------------------------
 
-To use Spack on Windows, you will need the following packages:
+To use Spack on Windows, you will need the following packages.
 
 Required:
+
 * Microsoft Visual Studio
 * Python
 * Git
 * 7z
 
 Optional:
+
 * Intel Fortran (needed for some packages)
 
 .. note::
@@ -109,7 +114,7 @@ in a Windows CMD prompt.
 
 .. code-block:: console
 
-   git clone https://github.com/spack/spack.git
+   $ git clone https://github.com/spack/spack.git
 
 .. note::
    If you chose to install Spack into a directory on Windows that is set up to require Administrative
@@ -134,7 +139,7 @@ To configure Spack, first run the following command inside the Spack console:
 
 .. code-block:: console
 
-   spack compiler find
+   $ spack compiler find
 
 This creates a ``.staging`` directory in our Spack prefix, along with a ``windows`` subdirectory
 containing a ``packages.yaml`` file. On a fresh Windows installation with the above packages
@@ -159,8 +164,8 @@ the Spack terminal, run the following commands:
 
 .. code-block:: console
 
-   spack external find cmake
-   spack external find ninja
+   $ spack external find cmake
+   $ spack external find ninja
 
 The ``spack external find <name>`` will find executables on your system
 with the same name given. The command will store the items found in
@@ -204,9 +209,9 @@ Step 4: Use Spack
 Once the configuration is complete, it is time to give the installation a test.  Install a basic package through the
 Spack console via:
 
-.. code-block:: console
+.. code-block:: spec
 
-   spack install cpuinfo
+   $ spack install cpuinfo
 
 If in the previous step, you did not have CMake or Ninja installed, running the command above should install both packages.
 

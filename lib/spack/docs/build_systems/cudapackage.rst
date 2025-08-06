@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      A guide to packaging CUDA applications with Spack, including helpers for managing CUDA dependencies and architecture-specific builds.
+
 .. _cudapackage:
 
 ------
@@ -81,7 +85,6 @@ This package provides one custom helper method, which is used to build
 standard CUDA compiler flags.
 
 **cuda_flags**
-
     This built-in static method returns a list of command line flags
     for the chosen ``cuda_arch`` value(s).  The flags are intended to
     be passed to the CUDA compiler driver (i.e., ``nvcc``).

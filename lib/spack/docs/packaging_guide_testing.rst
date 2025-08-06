@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      A guide to adding tests to Spack packages to ensure correct installation and functionality.
+
 .. list-table::
    :widths: 25 25 25 25
    :header-rows: 0
@@ -123,7 +127,7 @@ a successfully installed package has the required files and/or directories.
 
 For example, running:
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack install --test=root reframe
 
@@ -215,7 +219,7 @@ and its ``Makefile`` has a standard ``check`` target. So Spack will
 automatically run ``make check`` after the ``build`` phase when it
 is installed using the ``--test`` option, such as:
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack install --test=root libelf
 
@@ -297,7 +301,7 @@ location will depend on whether the spec installed successfully.
 A successful installation results in the build and stage logs being copied
 to the ``.spack`` subdirectory of the spec's prefix. For example,
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack install --test=root zlib@1.2.13
    ...
@@ -307,7 +311,7 @@ to the ``.spack`` subdirectory of the spec's prefix. For example,
 If the installation fails due to build-time test failures, then both logs will
 be left in the build stage directory as illustrated below:
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack install --test=root zlib@1.2.13
    ...

@@ -2,6 +2,10 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+.. meta::
+   :description lang=en:
+      Learn how to use Spack environments to manage single-user installations, similar to Homebrew and Conda.
+
 .. _spack-environments-basic-usage:
 
 ==================
@@ -30,7 +34,7 @@ Next, we can add a list of packages we would like to install into our environmen
 Let's say we want a newer version of Bash than the one that comes with macOS, and we want a few Python libraries.
 We can run:
 
-.. code-block:: console
+.. code-block:: spec
 
    $ spack -e myenv add bash@5 python py-numpy py-scipy py-matplotlib
 
@@ -117,7 +121,6 @@ Now, when you type ``which python3``, it should find the one you just installed.
 
 .. admonition:: Add the new shell to the list of valid login shells
    :class: tip
-   :collapsible:
 
    In order to change the default shell to our newer Bash installation, we first need to add it to this list of acceptable shells.
    Run:

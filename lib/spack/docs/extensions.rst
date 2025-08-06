@@ -2,7 +2,9 @@
 
    SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-.. extensions:
+.. meta::
+   :description lang=en:
+      Discover how to extend Spack's core functionality by creating custom commands and plugins.
 
 =================
 Custom Extensions
@@ -124,9 +126,9 @@ Spack can be made aware of extensions that are installed as part of a Python pac
 
   my-package/
   ├── src
-  │   ├── my_package
-  │   │   └── __init__.py
-  │   └── spack-scripting/  # the spack extensions
+  │   ├── my_package
+  │   │   └── __init__.py
+  │   └── spack-scripting/  # the spack extensions
   └── pyproject.toml
 
 adding the following to ``my_package``'s ``pyproject.toml`` will make the ``spack-scripting`` extension visible to Spack when ``my_package`` is installed:
