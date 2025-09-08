@@ -352,7 +352,7 @@ class SingleFileScope(ConfigScope):
             filesystem.rename(tmp, self.path)
 
         except (syaml.SpackYAMLError, OSError) as e:
-            raise ConfigFileError(f"cannot write to '{filename}'") from e
+            raise ConfigFileError(f"cannot write to config file {str(e)}") from e
 
     def __repr__(self) -> str:
         return f"<SingleFileScope: {self.name}: {self.path}>"
