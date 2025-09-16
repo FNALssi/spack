@@ -199,30 +199,45 @@ build_priority_offset = 200
 fixed_priority_offset = 100
 
 
+class OptimizationKind:
+    """Enum for the optimization KIND of a criteria.
+
+    It's not using enum.Enum since it must be serializable.
+    """
+
+    BUILD = 0
+    CONCRETE = 1
+    OTHER = 2
+
+
+class OptimizationCriteria(NamedTuple):
+    """A named tuple describing an optimization criteria."""
+
+    priority: int
+    value: int
+    name: str
+    kind: OptimizationKind
+
+
 def build_criteria_names(costs, arg_tuples):
     """Construct an ordered mapping from criteria names to costs."""
     # pull optimization criteria names out of the solution
     priorities_names = []
 
-    num_fixed = 0
-    num_high_fixed = 0
     for args in arg_tuples:
         priority, name = args[:2]
         priority = int(priority)
 
-        # add the priority of this opt criterion and its name
-        priorities_names.append((priority, name))
-
-        # if the priority is less than fixed_priority_offset, then it
-        # has an associated build priority -- the same criterion but for
-        # nodes that we have to build.
+        # Add the priority of this opt criterion and its name
         if priority < fixed_priority_offset:
+            # if the priority is less than fixed_priority_offset, then it
+            # has an associated build priority -- the same criterion but for
+            # nodes that we have to build.
+            priorities_names.append((priority, name, OptimizationKind.CONCRETE))
             build_priority = priority + build_priority_offset
-            priorities_names.append((build_priority, name))
-        elif priority >= high_fixed_priority_offset:
-            num_high_fixed += 1
+            priorities_names.append((build_priority, name, OptimizationKind.BUILD))
         else:
-            num_fixed += 1
+            priorities_names.append((priority, name, OptimizationKind.OTHER))
 
     # sort the criteria by priority
     priorities_names = sorted(priorities_names, reverse=True)
@@ -232,33 +247,10 @@ def build_criteria_names(costs, arg_tuples):
     error_criteria = len(costs) - len(priorities_names)
     costs = costs[error_criteria:]
 
-    # split list into three parts: build criteria, fixed criteria, non-build criteria
-    num_criteria = len(priorities_names)
-    num_build = (num_criteria - num_fixed - num_high_fixed) // 2
-
-    build_start_idx = num_high_fixed
-    fixed_start_idx = num_high_fixed + num_build
-    installed_start_idx = num_high_fixed + num_build + num_fixed
-
-    high_fixed = priorities_names[:build_start_idx]
-    build = priorities_names[build_start_idx:fixed_start_idx]
-    fixed = priorities_names[fixed_start_idx:installed_start_idx]
-    installed = priorities_names[installed_start_idx:]
-
-    # mapping from priority to index in cost list
-    indices = dict((p, i) for i, (p, n) in enumerate(priorities_names))
-
-    # make a list that has each name with its build and non-build costs
-    criteria = [(cost, None, name) for cost, (p, name) in zip(costs[:build_start_idx], high_fixed)]
-    criteria += [
-        (cost, None, name)
-        for cost, (p, name) in zip(costs[fixed_start_idx:installed_start_idx], fixed)
+    return [
+        OptimizationCriteria(priority, value, name, status)
+        for (priority, name, status), value in zip(priorities_names, costs)
     ]
-
-    for (i, name), (b, _) in zip(installed, build):
-        criteria.append((costs[indices[i]], costs[indices[b]], name))
-
-    return criteria
 
 
 def specify(spec):
@@ -323,6 +315,32 @@ def extend_flag_list(flag_list, new_flags):
         if flag in flag_list:
             flag_list.remove(flag)
         flag_list.append(flag)
+
+
+def _reorder_flags(flag_list: List[spack.spec.CompilerFlag]) -> List[spack.spec.CompilerFlag]:
+    """Reorder a list of flags to ensure that the order matches that of the flag group."""
+    if not flag_list:
+        return []
+
+    if len({x.flag_group for x in flag_list}) != 1 or len({x.source for x in flag_list}) != 1:
+        raise InternalConcretizerError(
+            "internal solver error: cannot reorder compiler flags for concretized specs. "
+            "Please report a bug at https://github.com/spack/spack/issues"
+        )
+
+    flag_group = flag_list[0].flag_group
+    flag_source = flag_list[0].source
+    flag_propagate = flag_list[0].propagate
+    # Once we have the flag_group, no need to iterate over the flag_list because the
+    # group represents all of them
+    return [
+        spack.spec.CompilerFlag(
+            flag, propagate=flag_propagate, flag_group=flag_group, source=flag_source
+        )
+        for flag, propagate in spack.compilers.flags.tokenize_flags(
+            flag_group, propagate=flag_propagate
+        )
+    ]
 
 
 def check_packages_exist(specs):
@@ -2200,7 +2218,7 @@ class SpackSolverSetup:
 
                 when_spec = spec
                 if virtual and spec.name != pkg_name:
-                    when_spec = spack.spec.Spec(f"^[virtuals={pkg_name}] {spec.name}")
+                    when_spec = spack.spec.Spec(f"^[virtuals={pkg_name}] {spec}")
 
                 try:
                     context = ConditionContext()
@@ -2459,6 +2477,7 @@ class SpackSolverSetup:
         concrete_build_deps: bool = False,
         include_runtimes: bool = False,
         context: Optional[SourceContext] = None,
+        seen: Optional[Set[int]] = None,
     ) -> List[AspFunction]:
         """Return a list of clauses for a spec mandates are true.
 
@@ -2474,6 +2493,7 @@ class SpackSolverSetup:
                 are ommitted from the solve.
             context: tracks what constraint this clause set is generated for (e.g. a
                 `depends_on` constraint in a package.py file)
+            seen: set of ids of specs that have already been processed (for internal use only)
 
         Normally, if called with ``transitive=True``, ``spec_clauses()`` just generates
         hashes for the dependency requirements of concrete specs. If ``expand_hashes``
@@ -2482,6 +2502,8 @@ class SpackSolverSetup:
         for spec ``diff``).
         """
         clauses = []
+        seen = seen if seen is not None else set()
+        seen.add(id(spec))
 
         f: Union[Type[_Head], Type[_Body]] = _Body if body else _Head
 
@@ -2660,13 +2682,14 @@ class SpackSolverSetup:
             # if the spec is abstract, descend into dependencies.
             # if it's concrete, then the hashes above take care of dependency
             # constraints, but expand the hashes if asked for.
-            if not spec.concrete or expand_hashes:
+            if (not spec.concrete or expand_hashes) and id(dep) not in seen:
                 dependency_clauses = self._spec_clauses(
                     dep,
                     body=body,
                     expand_hashes=expand_hashes,
                     concrete_build_deps=concrete_build_deps,
                     context=context,
+                    seen=seen,
                 )
                 ###
                 # Dependency expressed with "^"
@@ -4029,14 +4052,25 @@ class SpecBuilder:
         e.g. for `y cflags="-z -a"` "-z" and "-a" should never have any intervening
         flags inserted, and should always appear in that order.
         """
-        cmd_specs = {s.name: s for spec in self._command_line_specs for s in spec.traverse()}
-
         for node, spec in self._specs.items():
             # if bootstrapping, compiler is not in config and has no flags
             flagmap_from_compiler = {
                 flag_type: [x for x in values if x.source == "compiler"]
                 for flag_type, values in spec.compiler_flags.items()
             }
+
+            flagmap_from_cli = {}
+            for flag_type, values in spec.compiler_flags.items():
+                if not values:
+                    continue
+
+                flags = [x for x in values if x.source == "literal"]
+                if not flags:
+                    continue
+
+                # For compiler flags from literal specs, reorder any flags to
+                # the input order from flag.flag_group
+                flagmap_from_cli[flag_type] = _reorder_flags(flags)
 
             for flag_type in spec.compiler_flags.valid_compiler_flags():
                 ordered_flags = []
@@ -4100,9 +4134,8 @@ class SpecBuilder:
                     extend_flag_list(ordered_flags, as_compiler_flags)
 
                 # 3. Now put cmd-line flags last
-                if node.pkg in cmd_specs:
-                    cmd_flags = cmd_specs[node.pkg].compiler_flags.get(flag_type, [])
-                    extend_flag_list(ordered_flags, cmd_flags)
+                if flag_type in flagmap_from_cli:
+                    extend_flag_list(ordered_flags, flagmap_from_cli[flag_type])
 
                 compiler_flags = spec.compiler_flags.get(flag_type, [])
                 msg = f"{set(compiler_flags)} does not equal {set(ordered_flags)}"

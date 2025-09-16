@@ -193,6 +193,13 @@ build_dependency_of_literal_node(LiteralNode, node(X, BuildDependency)) :-
 condition_set(node(min_dupe_id, Root), LiteralNode) :- literal_node(Root, LiteralNode).
 condition_set(LiteralNode, BuildNode) :- build_dependency_of_literal_node(LiteralNode, BuildNode).
 
+% Generate a comprehensible error for cases like 'foo ^bar' where 'bar' is a build dependency
+% of a transitive dependency of 'foo'
+error(1, "{0} is not a direct 'build' or 'test' dependency, or transitive 'link' or 'run' dependency of any root", Literal)
+  :- literal_node(RootPackage, node(X, Literal)),
+     not depends_on(node(min_dupe_id, RootPackage), node(X, Literal)),
+     not unification_set("root", node(X, Literal)).
+
 :- build_dependency_of_literal_node(LiteralNode, BuildNode),
    not attr("depends_on", LiteralNode, BuildNode, "build").
 
@@ -559,8 +566,7 @@ attr("concrete_variant_set", node(X, A1), Variant, Value, ID)
 :- attr("direct_dependency", ParentNode, node_requirement("provider_set", BuildDependency, Virtual)),
    concrete_build_requirement(ParentNode, BuildDependency),
    attr("concrete_build_dependency", ParentNode, BuildDependency, BuildDependencyHash),
-   attr("virtual_on_build_edge", ParentNode, BuildDependency, Virtual),
-   not 1 { pkg_fact(BuildDependency, version_satisfies(Constraint, Version)) : hash_attr(BuildDependencyHash, "version", BuildDependency, Version) } 1.
+   not attr("virtual_on_build_edge", ParentNode, BuildDependency, Virtual).
 
 error(100, "Cannot satisfy the request on {0} to have {1}={2}", BuildDependency, Variant, Value)
 :- attr("direct_dependency", ParentNode, node_requirement("variant_set", BuildDependency, Variant, Value)),
@@ -624,9 +630,12 @@ error(100, "External {0} cannot satisfy both {1} and {2}", BuildDependency, Lite
      virtual(Virtual).
 
 attr("virtual_node", VirtualNode)  :- virtual_build_requirement(ParentNode, VirtualNode).
-{ build_requirement(ParentNode, ProviderNode) } :-
+build_requirement(ParentNode, ProviderNode)  :-
   virtual_build_requirement(ParentNode, VirtualNode),
-  provider(ProviderNode, VirtualNode).
+  provider(ProviderNode, VirtualNode),
+  not attr("depends_on", ParentNode, ProviderNode, "link"),
+  not attr("depends_on", ParentNode, ProviderNode, "run"),
+  attr("depends_on", ParentNode, ProviderNode, "build").
 
 % From cli we can have literal expressions like:
 %
@@ -658,6 +667,10 @@ attr("node_os_set", node(X, BuildDependency), NodeOS) :-
 
 attr("node_platform_set", node(X, BuildDependency), NodePlatform) :-
   attr("direct_dependency", ParentNode, node_requirement("node_platform_set", BuildDependency, NodePlatform)),
+  build_requirement(ParentNode, node(X, BuildDependency)).
+
+attr("node_flag_set", node(X, BuildDependency), NodeFlag) :-
+  attr("direct_dependency", ParentNode, node_requirement("node_flag_set", BuildDependency, NodeFlag)),
   build_requirement(ParentNode, node(X, BuildDependency)).
 
 attr("hash", node(X, BuildDependency), BuildHash) :-
@@ -1144,6 +1157,14 @@ error(1, "Cannot use {1} for the {0} virtual, but that is required", Virtual, Pr
   activate_requirement(node(ID, Package), RequirementID),
   pkg_fact(Package, condition_effect(ConditionID, EffectID)),
   imposed_constraint(EffectID, "node_flag_set", Package, NodeFlag).
+
+{ attr("node_flag", node(ID, Package), NodeFlag) } :-
+  requirement_group_member(ConditionID, Virtual, RequirementID),
+  activate_requirement(node(VirtualID, Virtual), RequirementID),
+  provider(node(ID, Package), VirtualNode),
+  pkg_fact(Virtual, condition_effect(ConditionID, EffectID)),
+  imposed_constraint(EffectID, "node_flag_set", Package, NodeFlag).
+
 
 requirement_weight(node(ID, Package), Group, W) :-
   W = #min {
@@ -1720,6 +1741,12 @@ error(100, "'{0} target={1}' is not compatible with this machine", Package, Targ
 
 attr("node_flag", PackageNode, NodeFlag) :- attr("node_flag_set", PackageNode, NodeFlag).
 
+% If we set "foo %bar cflags=A ^fee %bar cflags=B" we want two nodes for "bar"
+error(100, "Cannot set multiple {0} values for {1} from cli", FlagType, Package)
+:- attr("node_flag_set", node(X, Package), node_flag(FlagType, _, FlagGroup1, "literal")),
+   attr("node_flag_set", node(X, Package), node_flag(FlagType, _, FlagGroup2, "literal")),
+   FlagGroup1 < FlagGroup2.
+
 %-----------------------------------------------------------------------------
 % Installed Packages
 %-----------------------------------------------------------------------------
@@ -1892,7 +1919,7 @@ opt_criterion(110, "number of packages to build (vs. reuse)").
 
 opt_criterion(100, "number of nodes from the same package").
 #minimize { 0@100: #true }.
-#minimize { ID@100,Package : attr("node", node(ID, Package)) }.
+#minimize { ID@100,Package : attr("node", node(ID, Package)), not self_build_requirement(_, node(ID, Package)) }.
 #minimize { ID@100,Package : attr("virtual_node", node(ID, Package)) }.
 #defined optimize_for_reuse/0.
 
