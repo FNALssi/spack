@@ -4709,7 +4709,7 @@ def _specs_from_mirror():
 def _specs_from_environment(env):
     """Return all concrete specs from the environment. This includes all included concrete"""
     if env:
-        return [concrete for _, concrete in env.concretized_specs()]
+        return list(spack.traverse.traverse_nodes([x for _, x in env.concretized_specs()]))
     else:
         return []
 
