@@ -4,6 +4,7 @@
 """Service functions and classes to implement the hooks
 for Spack's command extensions.
 """
+
 import glob
 import importlib
 import os
@@ -108,7 +109,7 @@ def ensure_extension_loaded(extension, *, path):
 
 
 def load_extension(name: str) -> str:
-    """Loads a single extension into the 'spack.extensions' package.
+    """Loads a single extension into the ``spack.extensions`` package.
 
     Args:
         name: name of the extension
@@ -132,6 +133,7 @@ def get_extension_paths():
     return paths
 
 
+@spack.llnl.util.lang.memoized
 def extension_paths_from_entry_points() -> List[str]:
     """Load extensions from a Python package's entry points.
 
@@ -146,6 +148,8 @@ def extension_paths_from_entry_points() -> List[str]:
     The function ``get_spack_extensions`` returns paths to the package's
     spack extensions
 
+    This function assumes that the state of entry points doesn't change from the first time it's
+    called. E.g., it doesn't support any new installation of packages between two calls.
     """
     extension_paths: List[str] = []
     for entry_point in spack.llnl.util.lang.get_entry_points(group="spack.extensions"):

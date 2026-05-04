@@ -26,6 +26,11 @@ pytestmark = pytest.mark.not_on_windows(
 )
 
 
+@pytest.fixture(autouse=True)
+def _clear_commit_cache():
+    spack.get_spack_commit.cache_clear()
+
+
 def test_version_git_nonsense_output(tmp_path: pathlib.Path, working_env, monkeypatch):
     git = tmp_path / "git"
     with open(git, "w", encoding="utf-8") as f:
@@ -62,9 +67,7 @@ def test_git_sha_output(tmp_path: pathlib.Path, working_env, monkeypatch):
         f.write(
             """#!/bin/sh
 echo {0}
-""".format(
-                sha
-            )
+""".format(sha)
         )
     fs.set_executable(str(git))
 
@@ -83,14 +86,18 @@ def test_get_version_no_git(working_env, monkeypatch):
     assert spack.spack_version == spack.get_version()
 
 
-def test_main_calls_get_version(capsys, working_env, monkeypatch):
+def test_main_calls_get_version(capfd, working_env, monkeypatch):
     # act like git is not found in the PATH
     monkeypatch.setattr(spack.util.git, "git", lambda: None)
 
     # make sure we get a bare version (without commit) when this happens
     spack.main.main(["-V"])
-    out, err = capsys.readouterr()
+    out, err = capfd.readouterr()
     assert spack.spack_version == out.strip()
+
+
+def test_unrecognized_top_level_flag():
+    assert spack.main.main(["-o", "mirror", "list"]) != 0
 
 
 def test_get_version_bad_git(tmp_path: pathlib.Path, working_env, monkeypatch):
@@ -107,11 +114,6 @@ exit 1
     assert spack.spack_version == spack.get_version()
 
 
-def fail_if_add_env(env):
-    """Pass to add_command_line_scopes. Will raise if called"""
-    assert False, "Should not add env from scope test."
-
-
 def test_bad_command_line_scopes(tmp_path: pathlib.Path, config):
     cfg = spack.config.Configuration()
     file_path = tmp_path / "file_instead_of_dir"
@@ -120,10 +122,10 @@ def test_bad_command_line_scopes(tmp_path: pathlib.Path, config):
     file_path.write_text("")
 
     with pytest.raises(spack.error.ConfigError):
-        spack.main.add_command_line_scopes(cfg, [str(file_path)], fail_if_add_env)
+        spack.main.add_command_line_scopes(cfg, [str(file_path)])
 
     with pytest.raises(spack.error.ConfigError):
-        spack.main.add_command_line_scopes(cfg, [str(non_existing_path)], fail_if_add_env)
+        spack.main.add_command_line_scopes(cfg, [str(non_existing_path)])
 
 
 def test_add_command_line_scopes(tmp_path: pathlib.Path, mutable_config):
@@ -137,7 +139,7 @@ config:
 """
         )
 
-    spack.main.add_command_line_scopes(mutable_config, [str(tmp_path)], fail_if_add_env)
+    spack.main.add_command_line_scopes(mutable_config, [str(tmp_path)])
     assert mutable_config.get("config:verify_ssl") is False
     assert mutable_config.get("config:dirty") is False
 
@@ -167,12 +169,12 @@ spack:
         )
 
     config = spack.config.Configuration()
-    spack.main.add_command_line_scopes(config, ["example", str(tmp_path)], fail_if_add_env)
+    spack.main.add_command_line_scopes(config, ["example", str(tmp_path)])
     assert len(config.scopes) == 2
     assert config.get("config:install_tree:root") == "/tmp/second"
 
     config = spack.config.Configuration()
-    spack.main.add_command_line_scopes(config, [str(tmp_path), "example"], fail_if_add_env)
+    spack.main.add_command_line_scopes(config, [str(tmp_path), "example"])
     assert len(config.scopes) == 2
     assert config.get("config:install_tree:root") == "/tmp/first"
 
@@ -240,9 +242,7 @@ packages:
 
     assert not spack.config.get("config:dirty")
 
-    spack.main.add_command_line_scopes(
-        mock_low_high_config, [os.path.dirname(filename)], fail_if_add_env
-    )
+    spack.main.add_command_line_scopes(mock_low_high_config, [os.path.dirname(filename)])
 
     assert spack.config.get("config:dirty")
     python_reqs = spack.config.get("packages")["python"]["require"]
@@ -269,15 +269,11 @@ def test_include_duplicate_source(mutable_config):
 
     system_config = {"config": {"debug": False}}
     write_configs(system_filename, system_config)
-    spack.main.add_command_line_scopes(
-        mutable_config, [os.path.dirname(system_filename)], fail_if_add_env
-    )
+    spack.main.add_command_line_scopes(mutable_config, [os.path.dirname(system_filename)])
 
     site_config = {"config": {"debug": True}}
     write_configs(site_filename, site_config)
-    spack.main.add_command_line_scopes(
-        mutable_config, [os.path.dirname(site_filename)], fail_if_add_env
-    )
+    spack.main.add_command_line_scopes(mutable_config, [os.path.dirname(site_filename)])
 
     # Ensure takes the last value of the option pushed onto the stack
     assert mutable_config.get("config:debug") == site_config["config"]["debug"]
@@ -293,9 +289,7 @@ def test_include_recurse_limit(tmp_path: pathlib.Path, mutable_config):
         syaml.dump_config(include_list, f)
 
     with pytest.raises(spack.config.RecursiveIncludeError, match="recursion exceeded"):
-        spack.main.add_command_line_scopes(
-            mutable_config, [os.path.dirname(include_path)], fail_if_add_env
-        )
+        spack.main.add_command_line_scopes(mutable_config, [os.path.dirname(include_path)])
 
 
 # TODO: Fix this once recursive includes are processed in the expected order.
@@ -339,7 +333,7 @@ include:
     write(b_yaml, include_contents([debug_yaml, d_yaml] if child == "b" else [d_yaml]))
     write(c_yaml, include_contents([debug_yaml, d_yaml] if child == "c" else [d_yaml]))
 
-    spack.main.add_command_line_scopes(mutable_config, [str(tmp_path)], fail_if_add_env)
+    spack.main.add_command_line_scopes(mutable_config, [str(tmp_path)])
 
     try:
         assert mutable_config.get("config:debug") is expected

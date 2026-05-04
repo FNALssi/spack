@@ -8,11 +8,9 @@ import sys
 from types import ModuleType
 from typing import Optional
 
-import pytest
-
 import spack.llnl.util.tty.log as log
 from spack.llnl.util.filesystem import working_dir
-from spack.util.executable import which
+from spack.util.executable import Executable
 
 termios: Optional[ModuleType] = None
 try:
@@ -21,9 +19,6 @@ try:
     termios = term_mod
 except ImportError:
     pass
-
-
-pytestmark = pytest.mark.not_on_windows("does not run on windows")
 
 
 @contextlib.contextmanager
@@ -133,35 +128,62 @@ def test_log_output_with_filter(capfd, tmp_path: pathlib.Path):
     assert capfd.readouterr()[0] == "bar blah\nblah bar\nbar bar\n"
 
 
-@pytest.mark.skipif(not which("echo"), reason="needs echo command")
-def test_log_subproc_and_echo_output_no_capfd(capfd, tmp_path: pathlib.Path):
-    echo = which("echo", required=True)
+def test_log_output_with_filter_and_append(capfd, tmp_path: pathlib.Path):
+    with working_dir(str(tmp_path)):
+        with log.log_output("foo.txt", filter_fn=_log_filter_fn):
+            print("foo blah")
+            print("blah foo")
+            print("foo foo")
 
-    # this is split into two tests because capfd interferes with the
-    # output logged to file when using a subprocess.  We test the file
-    # here, and echoing in test_log_subproc_and_echo_output_capfd below.
-    with capfd.disabled():
-        with working_dir(str(tmp_path)):
-            with log.log_output("foo.txt") as logger:
-                with logger.force_echo():
-                    echo("echo")
-                print("logged")
+        with open("foo.txt", encoding="utf-8") as f:
+            assert f.read() == "foo blah\nblah foo\nfoo foo\n"
 
-            with open("foo.txt", encoding="utf-8") as f:
-                assert f.read() == "echo\nlogged\n"
+        with log.log_output("foo.txt", filter_fn=_log_filter_fn, append=True):
+            print("more foo more blah")
+
+        with open("foo.txt", encoding="utf-8") as f:
+            assert f.read() == "foo blah\nblah foo\nfoo foo\nmore foo more blah\n"
 
 
-@pytest.mark.skipif(not which("echo"), reason="needs echo command")
-def test_log_subproc_and_echo_output_capfd(capfd, tmp_path: pathlib.Path):
-    echo = which("echo", required=True)
+def test_log_subproc_and_echo_output(capfd, tmp_path: pathlib.Path):
+    python = Executable(sys.executable)
 
-    # This tests *only* what is echoed when using a subprocess, as capfd
-    # interferes with the logged data. See
-    # test_log_subproc_and_echo_output_no_capfd for tests on the logfile.
     with working_dir(str(tmp_path)):
         with log.log_output("foo.txt") as logger:
             with logger.force_echo():
-                echo("echo")
+                python("-c", "print('echo')")
             print("logged")
 
-        assert capfd.readouterr()[0] == "echo\n"
+        # Check log file content
+        with open("foo.txt", encoding="utf-8") as f:
+            assert f.read() == "echo\nlogged\n"
+
+        # Check captured output (echoed content)
+        # Note: 'logged' is not echoed because force_echo() scope ended
+        # Note: "print(echo)" above automatically uses an "\r\n" on Windows
+        # and will replace any \n with \r\n (so end=\n does not work)
+        # \r\n is expected and correct here
+        # Note: the above line ending constraint is an artifact of
+        # pytest's capfd. This is potentially (however unlikely)
+        # subject to change with future versions of pytest.
+        # if this test suddenly starts failing, verifying the line
+        # endings from capfd is a good starting place.
+        newline = "\r\n" if sys.platform == "win32" else "\n"
+        assert capfd.readouterr()[0] == f"echo{newline}"
+
+
+def test_nested_logging_contexts(capfd, tmp_path):
+    with working_dir(str(tmp_path)):
+        with log.log_output("foo.txt"):
+            with log.log_output("bar.txt"):
+                print("inner")
+            print("outer")
+
+        with open("foo.txt", "r", encoding="utf-8") as f:
+            log_captured_out = f.read()
+            assert "outer\n" in log_captured_out
+            assert "inner\n" not in log_captured_out
+        with open("bar.txt", "r", encoding="utf-8") as f:
+            log_captured_out = f.read()
+            assert "inner\n" in log_captured_out
+            assert "outer\n" not in log_captured_out

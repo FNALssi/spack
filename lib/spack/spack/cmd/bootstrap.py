@@ -12,24 +12,24 @@ import spack
 import spack.bootstrap
 import spack.bootstrap.config
 import spack.bootstrap.core
+import spack.cmd.mirror
 import spack.concretize
 import spack.config
 import spack.llnl.util.filesystem
 import spack.llnl.util.tty
 import spack.llnl.util.tty.color
-import spack.mirrors.utils
 import spack.stage
 import spack.util.path
 import spack.util.spack_yaml
 from spack.cmd.common import arguments
 
 description = "manage bootstrap configuration"
-section = "system"
+section = "admin"
 level = "long"
 
 
 # Tarball to be downloaded if binary packages are requested in a local mirror
-BINARY_TARBALL = "https://github.com/spack/spack-bootstrap-mirrors/releases/download/v0.6/bootstrap-buildcache-v3.tar.gz"
+BINARY_TARBALL = "https://github.com/spack/spack-bootstrap-mirrors/releases/download/v2.2/bootstrap-buildcache.tar.gz"
 
 #: Subdirectory where to create the mirror
 LOCAL_MIRROR_DIR = "bootstrap_cache"
@@ -51,9 +51,9 @@ BINARY_METADATA = {
     },
 }
 
-CLINGO_JSON = "$spack/share/spack/bootstrap/github-actions-v0.6/clingo.json"
-GNUPG_JSON = "$spack/share/spack/bootstrap/github-actions-v0.6/gnupg.json"
-PATCHELF_JSON = "$spack/share/spack/bootstrap/github-actions-v0.6/patchelf.json"
+CLINGO_JSON = "$spack/share/spack/bootstrap/github-actions-v2/clingo.json"
+GNUPG_JSON = "$spack/share/spack/bootstrap/github-actions-v2/gnupg.json"
+PATCHELF_JSON = "$spack/share/spack/bootstrap/github-actions-v2/patchelf.json"
 
 # Metadata for a generated source mirror
 SOURCE_METADATA = {
@@ -111,7 +111,12 @@ def setup_parser(subparser: argparse.ArgumentParser) -> None:
     )
 
     list = sp.add_parser("list", help="list all the sources of software to bootstrap Spack")
-    _add_scope_option(list)
+    list.add_argument(
+        "--scope",
+        action=arguments.ConfigScope,
+        type=arguments.config_scope_readable_validator,
+        help="configuration scope to read/modify",
+    )
 
     add = sp.add_parser("add", help="add a new source for bootstrapping")
     _add_scope_option(add)
@@ -188,6 +193,11 @@ def _reset(args):
 def _root(args):
     if args.path:
         spack.config.set("bootstrap:root", args.path, scope=args.scope)
+    elif args.scope:
+        if args.scope not in spack.config.existing_scope_names():
+            spack.llnl.util.tty.die(
+                f"The argument --scope={args.scope} must refer to an existing scope."
+            )
 
     root = spack.config.get("bootstrap:root", default=None, scope=args.scope)
     if root:
@@ -260,9 +270,8 @@ def _write_bootstrapping_source_status(name, enabled, scope=None):
     matches = [s for s in sources if s["name"] == name]
     if not matches:
         names = [s["name"] for s in sources]
-        msg = (
-            'there is no bootstrapping method named "{0}". Valid '
-            "method names are: {1}".format(name, ", ".join(names))
+        msg = 'there is no bootstrapping method named "{0}". Valid method names are: {1}'.format(
+            name, ", ".join(names)
         )
         raise RuntimeError(msg)
 
@@ -371,8 +380,7 @@ def _remove(args):
             sources = [s for s in sources if s["name"] != args.name]
             spack.config.set("bootstrap:sources", sources, scope=current_scope)
             msg = (
-                'Removed the bootstrapping source named "{0}" from the '
-                '"{1}" configuration scope.'
+                'Removed the bootstrapping source named "{0}" from the "{1}" configuration scope.'
             )
             spack.llnl.util.tty.msg(msg.format(args.name, current_scope))
         trusted = spack.config.get("bootstrap:trusted", scope=current_scope) or []
@@ -400,7 +408,9 @@ def _mirror(args):
         spack.llnl.util.tty.set_msg_enabled(False)
         spec = spack.concretize.concretize_one(spec_str)
         for node in spec.traverse():
-            spack.mirrors.utils.create(mirror_dir, [node])
+            if node.external:
+                continue
+            spack.cmd.mirror.create(mirror_dir, [node])
         spack.llnl.util.tty.set_msg_enabled(True)
 
     if args.binary_packages:

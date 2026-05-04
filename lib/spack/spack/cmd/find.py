@@ -13,14 +13,18 @@ import spack.llnl.util.lang
 import spack.llnl.util.tty as tty
 import spack.llnl.util.tty.color as color
 import spack.repo
+import spack.solver.reuse
 import spack.spec
 import spack.store
 from spack.cmd.common import arguments
+from spack.llnl.util.tty.color import colorize
+from spack.solver.reuse import create_external_parser
+from spack.solver.runtimes import external_config_with_implicit_externals
 
 from ..enums import InstallRecordStatus
 
 description = "list and search installed packages"
-section = "basic"
+section = "query"
 level = "short"
 
 
@@ -38,7 +42,7 @@ def setup_parser(subparser: argparse.ArgumentParser) -> None:
         action="store_const",
         dest="format",
         const="{/hash}",
-        help="same as '--format {/hash}'; use with xargs or $()",
+        help="same as ``--format {/hash}``; use with ``xargs`` or ``$()``",
     )
     format_group.add_argument(
         "--json",
@@ -87,11 +91,17 @@ def setup_parser(subparser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="don't show full list of installed specs in an environment",
     )
-    subparser.add_argument(
+    concretized_vs_packages = subparser.add_mutually_exclusive_group()
+    concretized_vs_packages.add_argument(
         "-c",
         "--show-concretized",
         action="store_true",
         help="show concretized specs in an environment",
+    )
+    concretized_vs_packages.add_argument(
+        "--show-configured-externals",
+        action="store_true",
+        help="show externals defined in the 'packages' section of the configuration",
     )
     subparser.add_argument(
         "-f",
@@ -118,6 +128,12 @@ def setup_parser(subparser: argparse.ArgumentParser) -> None:
         "--implicit",
         action="store_true",
         help="show only specs that were installed as dependencies",
+    )
+    subparser.add_argument(
+        "-e",
+        "--external",
+        action="store_true",
+        help="show only specs that are marked as externals",
     )
     subparser.add_argument(
         "-u",
@@ -238,20 +254,15 @@ def make_env_decorator(env):
 def display_env(env, args, decorator, results):
     """Display extra find output when running in an environment.
 
-    In an environment, `spack find` outputs a preliminary section
+    In an environment, ``spack find`` outputs a preliminary section
     showing the root specs of the environment (this is in addition
     to the section listing out specs matching the query parameters).
-
     """
-    tty.msg("In environment %s" % env.name)
+    total_roots = sum(len(env.user_specs_by(group=g)) for g in env.manifest.groups())
+    root_spec_str = f"{total_roots or 'no'} root {'spec' if total_roots == 1 else 'specs'}"
+    tty.msg(f"In environment {env.name} ({root_spec_str})")
 
-    num_roots = len(env.user_specs) or "No"
-    tty.msg(f"{num_roots} root specs")
-
-    concrete_specs = {
-        root: concrete_root
-        for root, concrete_root in zip(env.concretized_user_specs, env.concrete_roots())
-    }
+    concrete_specs = {x.root: env.specs_by_hash[x.hash] for x in env.concretized_roots}
 
     def root_decorator(spec, string):
         """Decorate root specs with their install status if needed"""
@@ -274,24 +285,36 @@ def display_env(env, args, decorator, results):
             return f"{status} {string}"
 
     with spack.store.STORE.db.read_transaction():
-        cmd.display_specs(
-            env.user_specs,
-            args,
-            # these are overrides of CLI args
-            paths=False,
-            long=False,
-            very_long=False,
-            # these enforce details in the root specs to show what the user asked for
-            namespaces=True,
-            show_flags=True,
-            decorator=root_decorator,
-            variants=True,
-            specfile_format=args.specfile_format,
-        )
+        for group in env.manifest.groups():
+            group_specs = env.user_specs_by(group=group)
+            if not group_specs:
+                continue
 
-    print()
+            if env.has_groups():
+                header = (
+                    f"{spack.spec.ARCHITECTURE_COLOR}{{root specs}} / "
+                    f"{spack.spec.COMPILER_COLOR}{{{group}}}"
+                )
+                tty.hline(colorize(header), char="-")
 
-    if env.included_concrete_envs:
+            cmd.display_specs(
+                group_specs,
+                args,
+                # these are overrides of CLI args
+                paths=False,
+                long=False,
+                very_long=False,
+                # these enforce details in the root specs to show what the user asked for
+                groups=False,
+                namespaces=True,
+                show_flags=True,
+                decorator=root_decorator,
+                variants=True,
+                specfile_format=args.specfile_format,
+            )
+            print()
+
+    if env.included_concrete_env_root_dirs:
         tty.msg("Included specs")
 
         # Root specs cannot be displayed with prefixes, since those are not
@@ -315,8 +338,17 @@ def display_env(env, args, decorator, results):
 
 def _find_query(args, env):
     q_args = query_arguments(args)
-    concretized_but_not_installed = list()
-    if env:
+    concretized_but_not_installed = []
+    if args.show_configured_externals:
+        packages_with_externals = external_config_with_implicit_externals(spack.config.CONFIG)
+        completion_mode = spack.config.CONFIG.get("concretizer:externals:completion")
+        results = spack.solver.reuse.spec_filter_from_packages_yaml(
+            external_parser=create_external_parser(packages_with_externals, completion_mode),
+            packages_with_externals=packages_with_externals,
+            include=[],
+            exclude=[],
+        ).selected_specs()
+    elif env:
         all_env_specs = env.all_specs()
         if args.constraint:
             init_specs = cmd.parse_specs(args.constraint)
@@ -336,6 +368,9 @@ def _find_query(args, env):
                     results.append(spec)
     else:
         results = args.specs(**q_args)
+
+    if args.external:
+        results = [s for s in results if s.external]
 
     # use groups by default except with format.
     if args.groups is None:

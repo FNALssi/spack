@@ -309,14 +309,14 @@ def test_checksum_url(mock_packages, config):
         spack_checksum(f"{pkg_cls.url}")
 
 
-def test_checksum_verification_fails(default_mock_concretization, capsys, can_fetch_versions):
+def test_checksum_verification_fails(default_mock_concretization, capfd, can_fetch_versions):
     spec = spack.concretize.concretize_one("zlib")
     pkg = spec.package
     versions = list(pkg.versions.keys())
     version_hashes = {versions[0]: "abadhash", Version("0.1"): "123456789"}
     with pytest.raises(SystemExit):
         spack.cmd.checksum.print_checksum_status(pkg, version_hashes)
-    out = str(capsys.readouterr())
+    out = str(capfd.readouterr())
     assert out.count("Correct") == 0
     assert "No previous checksum" in out
     assert "Invalid checksum" in out
@@ -366,6 +366,7 @@ class Zlib(Package):
     version("1.2.5", sha256="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890")
     version("1.2.3", sha256="1795c7d067a43174113fdf03447532f373e1c6c57c08d61d9e4e9be5e244b05e")
 """
+    # ruff: disable[E501]
     # two new versions are added
     assert spack.cmd.checksum.add_versions_to_pkg(str(pkg_path), version_lines) == 2
     assert (
@@ -388,3 +389,6 @@ class Zlib(Package):
         make("install")
 """
     )
+
+
+# ruff: enable[E501]

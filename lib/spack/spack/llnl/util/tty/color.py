@@ -6,69 +6,72 @@
 This file implements an expression syntax, similar to ``printf``, for adding
 ANSI colors to text.
 
-See ``colorize()``, ``cwrite()``, and ``cprint()`` for routines that can
+See :func:`colorize`, :func:`cwrite`, and :func:`cprint` for routines that can
 generate colored output.
 
-``colorize`` will take a string and replace all color expressions with
+:func:`colorize` will take a string and replace all color expressions with
 ANSI control codes.  If the ``isatty`` keyword arg is set to False, then
 the color expressions will be converted to null strings, and the
 returned string will have no color.
 
-``cwrite`` and ``cprint`` are equivalent to ``write()`` and ``print()``
+:func:`cwrite` and :func:`cprint` are equivalent to ``write()`` and ``print()``
 calls in python, but they colorize their output.  If the ``stream`` argument is
 not supplied, they write to ``sys.stdout``.
 
 Here are some example color expressions:
 
-==========  ============================================================
-Expression  Meaning
-==========  ============================================================
-@r          Turn on red coloring
-@R          Turn on bright red coloring
-@*{foo}     Bold foo, but don't change text color
-@_{bar}     Underline bar, but don't change text color
-@*b         Turn on bold, blue text
-@_B         Turn on bright blue text with an underline
-@.          Revert to plain formatting
-@*g{green}  Print out 'green' in bold, green text, then reset to plain.
-@*ggreen@.  Print out 'green' in bold, green text, then reset to plain.
-==========  ============================================================
+==============  ============================================================
+Expression      Meaning
+==============  ============================================================
+``@r``          Turn on red coloring
+``@R``          Turn on bright red coloring
+``@*{foo}``     Bold foo, but don't change text color
+``@_{bar}``     Underline bar, but don't change text color
+``@*b``         Turn on bold, blue text
+``@_B``         Turn on bright blue text with an underline
+``@.``          Revert to plain formatting
+``@*g{green}``  Print out 'green' in bold, green text, then reset to plain.
+``@*ggreen@.``  Print out 'green' in bold, green text, then reset to plain.
+==============  ============================================================
 
 The syntax consists of:
 
-==========  =================================================
-color-expr  '@' [style] color-code '{' text '}' | '@.' | '@@'
-style       '*' | '_'
-color-code  [krgybmcwKRGYBMCW]
-text        .*
-==========  =================================================
+==========  =====================================================
+color-expr  ``'@' [style] color-code '{' text '}' | '@.' | '@@'``
+style       ``'*' | '_'``
+color-code  ``[krgybmcwKRGYBMCW]``
+text        ``.*``
+==========  =====================================================
 
-'@' indicates the start of a color expression.  It can be followed
-by an optional * or _ that indicates whether the font should be bold or
-underlined.  If * or _ is not provided, the text will be plain.  Then
-an optional color code is supplied.  This can be [krgybmcw] or [KRGYBMCW],
-where the letters map to  black(k), red(r), green(g), yellow(y), blue(b),
-magenta(m), cyan(c), and white(w).  Lowercase letters denote normal ANSI
+``@`` indicates the start of a color expression.  It can be followed
+by an optional ``*`` or ``_`` that indicates whether the font should be bold or
+underlined.  If ``*`` or ``_`` is not provided, the text will be plain.  Then
+an optional color code is supplied.  This can be ``[krgybmcw]`` or ``[KRGYBMCW]``,
+where the letters map to  ``black(k)``, ``red(r)``, ``green(g)``, ``yellow(y)``, ``blue(b)``,
+``magenta(m)``, ``cyan(c)``, and ``white(w)``.  Lowercase letters denote normal ANSI
 colors and capital letters denote bright ANSI colors.
 
-Finally, the color expression can be followed by text enclosed in {}.  If
+Finally, the color expression can be followed by text enclosed in ``{}``.  If
 braces are present, only the text in braces is colored.  If the braces are
 NOT present, then just the control codes to enable the color will be output.
-The console can be reset later to plain text with '@.'.
+The console can be reset later to plain text with ``@.``.
 
-To output an @, use '@@'.  To output a } inside braces, use '}}'.
+To output an ``@``, use ``@@``.  To output a ``}`` inside braces, use ``}}``.
 """
+
+import io
 import os
 import re
 import sys
+import textwrap
 from contextlib import contextmanager
-from typing import Optional
+from typing import IO, Iterator, List, NamedTuple, Optional, Tuple, Union
 
 
 class ColorParseError(Exception):
     """Raised when a color format fails to parse."""
 
-    def __init__(self, message):
+    def __init__(self, message: str) -> None:
         super().__init__(message)
 
 
@@ -102,17 +105,19 @@ COLOR_RE = re.compile(r"@(?:(@)|(\.)|([*_])?([a-zA-Z])?(?:{((?:[^}]|}})*)})?)")
 color_when_values = {"always": True, "auto": None, "never": False}
 
 
-def _color_when_value(when):
+def _color_when_value(when: Union[str, bool, None]) -> Optional[bool]:
     """Raise a ValueError for an invalid color setting.
 
     Valid values are 'always', 'never', and 'auto', or equivalently,
     True, False, and None.
     """
-    if when in color_when_values:
-        return color_when_values[when]
-    elif when not in color_when_values.values():
-        raise ValueError("Invalid color setting: %s" % when)
-    return when
+    if isinstance(when, bool) or when is None:
+        return when
+
+    elif when not in color_when_values:
+        raise ValueError(f"Invalid color setting: {when}")
+
+    return color_when_values[when]
 
 
 def _color_from_environ() -> Optional[bool]:
@@ -126,7 +131,7 @@ def _color_from_environ() -> Optional[bool]:
 _force_color = _color_from_environ()
 
 
-def try_enable_terminal_color_on_windows():
+def try_enable_terminal_color_on_windows() -> None:
     """Turns coloring in Windows terminal by enabling VTP in Windows consoles (CMD/PWSH/CONHOST)
     Method based on the link below
     https://learn.microsoft.com/en-us/windows/console/console-virtual-terminal-sequences#example-of-enabling-virtual-terminal-processing
@@ -181,47 +186,51 @@ def try_enable_terminal_color_on_windows():
             _force_color = False
 
 
-def get_color_when():
+def get_color_when(stdout=None) -> bool:
     """Return whether commands should print color or not."""
     if _force_color is not None:
         return _force_color
-    return sys.stdout.isatty()
+    if stdout is None:
+        stdout = sys.stdout
+    return stdout.isatty()
 
 
-def set_color_when(when):
+def set_color_when(when: Union[str, bool, None]) -> None:
     """Set when color should be applied.  Options are:
 
-    * True or 'always': always print color
-    * False or 'never': never print color
-    * None or 'auto': only print color if sys.stdout is a tty.
+    * True or ``"always"``: always print color
+    * False or ``"never"``: never print color
+    * None or ``"auto"``: only print color if sys.stdout is a tty.
     """
     global _force_color
     _force_color = _color_when_value(when)
 
 
 @contextmanager
-def color_when(value):
+def color_when(value: Union[str, bool, None]) -> Iterator[None]:
     """Context manager to temporarily use a particular color setting."""
-    old_value = value
+    old_value = _force_color
     set_color_when(value)
     yield
     set_color_when(old_value)
 
 
-def _escape(s: str, color: bool, enclose: bool, zsh: bool) -> str:
+_ConvertibleToStr = Union[str, int, bool, None]
+
+
+def _escape(s: _ConvertibleToStr, color: bool, enclose: bool, zsh: bool) -> str:
     """Returns a TTY escape sequence for a color"""
-    if color:
-        if zsh:
-            result = rf"\e[0;{s}m"
-        else:
-            result = f"\033[{s}m"
-
-        if enclose:
-            result = rf"\[{result}\]"
-
-        return result
-    else:
+    if not color:
         return ""
+    elif zsh:
+        return f"\033[0;{s}m"
+
+    result = f"\033[{s}m"
+
+    if enclose:
+        result = rf"\[{result}\]"
+
+    return result
 
 
 def colorize(
@@ -231,20 +240,16 @@ def colorize(
 
     Args:
         string: The string to replace
-
-    Returns:
-        The filtered string
-
-    Keyword Arguments:
         color: If False, output will be plain text without control codes, for output to
             non-console devices (default: automatically choose color or not)
-        enclose: If True, enclose ansi color sequences with
-            square brackets to prevent misestimation of terminal width.
+        enclose: If True, enclose ansi color sequences with square brackets to prevent
+            misestimation of terminal width.
         zsh: If True, use zsh ansi codes instead of bash ones (for variables like PS1)
     """
-    color = color if color is not None else get_color_when()
+    if color is None:
+        color = get_color_when()
 
-    def match_to_ansi(match):
+    def match_to_ansi(match) -> str:
         """Convert a match object generated by ``COLOR_RE`` into an ansi
         color code. This can be used as a handler in ``re.sub``.
         """
@@ -263,6 +268,9 @@ def colorize(
         semi = ";" if color_number else ""
         ansi_code = _escape(f"{styles[style]}{semi}{color_number}", color, enclose, zsh)
         if text:
+            # must be here, not in the final return: top-level @@ is already handled by
+            # the regex, and its @-results could form new @@ pairs.
+            text = text.replace("@@", "@")
             return f"{ansi_code}{text}{_escape(0, color, enclose, zsh)}"
         else:
             return ansi_code
@@ -270,17 +278,104 @@ def colorize(
     return COLOR_RE.sub(match_to_ansi, string).replace("}}", "}")
 
 
-def clen(string):
+#: matches a standard ANSI color code
+ANSI_CODE_RE = re.compile(r"\033[^m]*m")
+
+
+def csub(string: str) -> str:
+    """Return the string with ANSI color sequences removed."""
+    return ANSI_CODE_RE.sub("", string)
+
+
+class ColorMapping(NamedTuple):
+    color: str  #: color string
+    colors: List[str]  #: ANSI color codes in the color string, in order
+    offsets: List[Tuple[int, int]]  #: map indices in plain string to offsets in color string
+
+    def plain_to_color(self, index: int) -> int:
+        """Convert plain string index to color index."""
+        offset = 0
+        for i, off in self.offsets:
+            if i > index:
+                break
+            offset = off
+        return index + offset
+
+
+def cmapping(string: str) -> ColorMapping:
+    """Return a mapping for translating indices in a plain string to indices in colored text.
+
+    The returned dictionary maps indices in the plain string to the offset of the corresponding
+    indices in the colored string.
+
+    """
+    colors = []
+    offsets = []
+    color_offset = 0
+
+    for m in ANSI_CODE_RE.finditer(string):
+        start, end = m.start(), m.end()
+        start_offset = color_offset
+        color_offset += end - start
+        offsets.append((start - start_offset, color_offset))
+        colors.append(m.group())
+
+    return ColorMapping(string, colors, offsets)
+
+
+def cwrap(
+    string: str, *, initial_indent: str = "", subsequent_indent: str = "", **kwargs
+) -> List[str]:
+    """Wrapper around ``textwrap.wrap()`` that handles ANSI color codes."""
+    plain = csub(string)
+    lines = textwrap.wrap(
+        plain, initial_indent=initial_indent, subsequent_indent=subsequent_indent, **kwargs
+    )
+
+    # do nothing if string has no ANSI codes
+    if plain == string:
+        return lines
+
+    # otherwise add colors back to lines after wrapping plain text
+    cmap = cmapping(string)
+
+    clines = []
+    start = 0
+    for i, line in enumerate(lines):
+        # scan to find the actual start, skipping any whitespace from a prior line break
+        # can assume this b/c textwrap only collapses whitespace at line breaks
+        while start < len(plain) and plain[start].isspace():
+            start += 1
+
+        # map the start and end positions in the plain string to the color string
+        cstart = cmap.plain_to_color(start)
+
+        # rewind to include any color codes before cstart
+        while cstart and string[cstart - 1] == "m":
+            cstart = string.rfind("\033", 0, cstart - 1)
+
+        indent = initial_indent if i == 0 else subsequent_indent
+        end = start + len(line) - len(indent)
+        cend = cmap.plain_to_color(end)
+
+        # append the color line to the result
+        clines.append(indent + string[cstart:cend])
+        start = end
+
+    return clines
+
+
+def clen(string: str) -> int:
     """Return the length of a string, excluding ansi color sequences."""
-    return len(re.sub(r"\033[^m]*m", "", string))
+    return len(csub(string))
 
 
-def cextra(string):
+def cextra(string: str) -> int:
     """Length of extra color characters in a string"""
     return len("".join(re.findall(r"\033[^m]*m", string)))
 
 
-def cwrite(string, stream=None, color=None):
+def cwrite(string: str, stream: Optional[IO[str]] = None, color: Optional[bool] = None) -> None:
     """Replace all color expressions in string with ANSI control
     codes and write the result to the stream.  If color is
     False, this will write plain text with no color.  If True,
@@ -293,9 +388,8 @@ def cwrite(string, stream=None, color=None):
     stream.write(colorize(string, color=color))
 
 
-def cprint(string, stream=None, color=None):
+def cprint(string: str, stream: Optional[IO[str]] = None, color: Optional[bool] = None) -> None:
     """Same as cwrite, but writes a trailing newline to the stream."""
-    stream = sys.stdout if stream is None else stream
     cwrite(string + "\n", stream, color)
 
 
@@ -319,12 +413,11 @@ def cescape(string: str) -> str:
 
 
 class ColorStream:
-    def __init__(self, stream, color=None):
+    def __init__(self, stream: io.IOBase, color: Optional[bool] = None) -> None:
         self._stream = stream
         self._color = color
 
-    def write(self, string, **kwargs):
-        raw = kwargs.get("raw", False)
+    def write(self, string: str, *, raw: bool = False) -> None:
         raw_write = getattr(self._stream, "write")
 
         color = self._color
@@ -334,8 +427,3 @@ class ColorStream:
             else:
                 color = get_color_when()
         raw_write(colorize(string, color=color))
-
-    def writelines(self, sequence, **kwargs):
-        raw = kwargs.get("raw", False)
-        for string in sequence:
-            self.write(string, self.color, raw=raw)

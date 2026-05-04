@@ -9,16 +9,19 @@ import pytest
 import spack.concretize
 import spack.deptypes as dt
 import spack.directives
-import spack.error
 import spack.llnl.util.lang
+import spack.package_base
 import spack.paths
+import spack.repo
 import spack.solver.asp
 import spack.spec
 import spack.spec_parser
 import spack.store
 import spack.variant
 import spack.version as vn
+from spack.enums import PropagationPolicy
 from spack.error import SpecError, UnsatisfiableSpecError
+from spack.llnl.util.tty.color import colorize
 from spack.spec import ArchSpec, DependencySpec, Spec, SpecFormatSigilError, SpecFormatStringError
 from spack.variant import (
     InvalidVariantValueError,
@@ -442,7 +445,7 @@ class TestSpecSemantics:
         assert set(propagated_rhs) <= _propagated_flags(c2)
 
     def test_constrain_specs_by_hash(self, default_mock_concretization, database):
-        """Test that Specs specified only by their hashes can constrain eachother."""
+        """Test that Specs specified only by their hashes can constrain each other."""
         mpich_dag_hash = "/" + database.query_one("mpich").dag_hash()
         spec = Spec(mpich_dag_hash[:7])
         assert spec.constrain(Spec(mpich_dag_hash)) is False
@@ -619,6 +622,84 @@ class TestSpecSemantics:
         assert not concrete.satisfies("^zmpi")
         assert concrete.satisfies("^[when='^notapackage'] zmpi")
         assert not concrete.satisfies("^[when='^mpi'] zmpi")
+
+    def test_concrete_satisfies_does_not_consult_repo(
+        self, default_mock_concretization, monkeypatch
+    ):
+        """Tests that `satisfies()` on a concrete lhs doesn't need the provider index, when the rhs
+        contains a virtual name.
+        """
+        concrete = default_mock_concretization("mpileaks ^mpich")
+
+        # Reset the index, will raise if the `_provider_index` is ever removed as an attribute
+        monkeypatch.setattr(spack.repo.PATH, "_provider_index", None)
+
+        # Basic match and mismatch cases.
+        assert concrete.satisfies("mpileaks")
+        assert not concrete.satisfies("zlib")
+
+        # Virtuals on a direct edge
+        assert concrete.satisfies("%mpi")
+        assert concrete.satisfies("%mpi@3")
+        assert not concrete.satisfies("%mpi@5")
+        assert concrete.satisfies("%mpi=mpich")
+        assert not concrete.satisfies("%lapack")
+
+        # Virtuals on a transitive edge
+        assert concrete.satisfies("^mpi")
+        assert concrete.satisfies("^mpi=mpich")
+        assert not concrete.satisfies("^lapack")
+
+        # Concrete spec asking about one of its concrete deps.
+        mpich = concrete["mpich"]
+        assert mpich.satisfies("mpich")
+        assert mpich.satisfies("mpi")
+
+        # We should not create again the index
+        assert spack.repo.PATH._provider_index is None
+
+    def test_concrete_contains_does_not_consult_repo(
+        self, default_mock_concretization, monkeypatch
+    ):
+        """Tests that `foo in spec` on a concrete spec doesn't need the provider index, when the
+        item contains a virtual name.
+        """
+        concrete = default_mock_concretization("mpileaks ^mpich")
+
+        # Reset the index, will raise if the `_provider_index` is ever removed as an attribute
+        monkeypatch.setattr(spack.repo.PATH, "_provider_index", None)
+
+        assert "mpi" in concrete
+        assert "c" in concrete
+
+        # We should not create again the index
+        assert spack.repo.PATH._provider_index is None
+
+    def test_abstract_satisfies_with_lhs_provider_rhs_virtual(self):
+        """If the left-hand side mentions a provider among dependencies and the right-hand side
+        mentions a virtual among its deps, we only have satisfaction if the edge attribute
+        specifies this virtual is provided."""
+        assert not Spec("mpileaks ^mpich").satisfies("mpileaks ^mpi")
+        assert not Spec("mpileaks %mpich").satisfies("mpileaks %mpi")
+        assert Spec("mpileaks ^[virtuals=mpi] mpich").satisfies("mpileaks ^mpi")
+        assert Spec("mpileaks %[virtuals=mpi] mpich").satisfies("mpileaks ^mpi")
+        assert Spec("mpileaks %[virtuals=mpi] mpich").satisfies("mpileaks %mpi")
+
+    def test_concrete_checks_on_virtual_names_dont_need_repo(
+        self, default_mock_concretization, monkeypatch
+    ):
+        """Tests that ``%mpi`` or similar on a concrete spec doesn't need the repo"""
+        concrete = default_mock_concretization("mpileaks ^mpich")
+
+        # We don't need the repo
+        monkeypatch.setattr(spack.repo, "PATH", None)
+
+        assert concrete.satisfies("%mpi")
+        assert concrete.satisfies("%c")
+        assert concrete.satisfies("%c=gcc")
+        assert concrete.satisfies("%mpi=mpich")
+
+        assert not concrete.satisfies("%c,mpi=mpich")
 
     def test_satisfies_single_valued_variant(self):
         """Tests that the case reported in
@@ -1045,7 +1126,7 @@ class TestSpecSemantics:
         fn = variant("foo", values=spack.variant.any_combination_of("fee", "foom"), default="bar")
         with pytest.raises(spack.directives.DirectiveError) as exc_info:
             fn(Pkg())
-        assert " it is handled by an attribute of the 'values' " "argument" in str(exc_info.value)
+        assert " it is handled by an attribute of the 'values' argument" in str(exc_info.value)
 
         # We can't leave None as a default value
         fn = variant("foo", default=None)
@@ -1167,7 +1248,7 @@ class TestSpecSemantics:
         assert spliced["pkg-e"]._build_spec is None
         # Because a copy of e is used, it does not have dependnets in the original specs
         assert set(spliced["pkg-e"].dependents()) == {spliced["pkg-b"], spliced["pkg-f"]}
-        # Build dependent edge to f because f originally dependended on the e this was copied from
+        # Build dependent edge to f because f originally depended on the e this was copied from
         assert set(spliced["pkg-e"].dependents(deptype=dt.BUILD)) == {spliced["pkg-b"]}
 
         assert spliced["pkg-f"].satisfies("pkg-f color=blue ^pkg-e color=red ^pkg-g@2 color=red")
@@ -1708,25 +1789,6 @@ def test_spec_dict_hashless_dep():
 
 
 @pytest.mark.parametrize(
-    "specs,expected",
-    [
-        # Anonymous specs without dependencies
-        (["+baz", "+bar"], "+baz+bar"),
-        (["@2.0:", "@:5.1", "+bar"], "@2.0:5.1 +bar"),
-        # Anonymous specs with dependencies
-        (["^mpich@3.2", "^mpich@:4.0+foo"], "^mpich@3.2 +foo"),
-        # Mix a real package with a virtual one. This test
-        # should fail if we start using the repository
-        (["^mpich@3.2", "^mpi+foo"], "^mpich@3.2 ^mpi+foo"),
-    ],
-)
-def test_merge_abstract_anonymous_specs(specs, expected):
-    specs = [Spec(x) for x in specs]
-    result = spack.spec.merge_abstract_anonymous_specs(*specs)
-    assert result == Spec(expected)
-
-
-@pytest.mark.parametrize(
     "anonymous,named,expected",
     [
         ("+plumed", "gromacs", "gromacs+plumed"),
@@ -1995,6 +2057,21 @@ def test_constrain(factory, lhs_str, rhs_str, result, constrained_str):
     assert rhs == factory(constrained_str)
 
 
+def test_constrain_dependencies_copies(mock_packages):
+    """Tests that constraining a spec with new deps makes proper copies, and does not accidentally
+    share dependency instances, leading to corruption of unrelated Spec instances."""
+    x = Spec("root")
+    y = Spec("^foo")
+    z = Spec("%foo +bar")
+    assert x.constrain(y)
+    assert x == Spec("root ^foo")
+    assert x.constrain(z)
+    assert x == Spec("root %foo +bar")
+    assert not x.constrain(Spec("root %foo +bar"))  # no new constraints
+    # now, double check that we did not mutate `y` after constraining `x` with `z`.
+    assert y == Spec("^foo")
+
+
 def test_abstract_hash_intersects_and_satisfies(default_mock_concretization):
     concrete: Spec = default_mock_concretization("pkg-a")
     hash = concrete.dag_hash()
@@ -2058,7 +2135,9 @@ def test_virtual_queries_work_for_strings_and_lists():
     """Ensure that ``dependencies()`` works with both virtuals=str and virtuals=[str, ...]."""
     parent, child = Spec("parent"), Spec("child")
     parent._add_dependency(
-        child, depflag=dt.BUILD, virtuals=("cxx", "fortran")  # multi-char dep names
+        child,
+        depflag=dt.BUILD,
+        virtuals=("cxx", "fortran"),  # multi-char dep names
     )
 
     assert not parent.dependencies(virtuals="c")  # not in virtuals but shares a char with cxx
@@ -2339,3 +2418,175 @@ def test_edge_equality_accounts_for_when_condition():
     edge1 = DependencySpec(parent, child, depflag=0, virtuals=(), when=Spec("%c"))
     edge2 = DependencySpec(parent, child, depflag=0, virtuals=())
     assert edge1 != edge2
+
+
+def test_long_spec():
+    """Test that long_spec preserves dependency types and has correct ordering."""
+    assert Spec("foo %m %l ^k %n %j").long_spec == "foo %l %m ^k %j %n"
+
+
+@pytest.mark.parametrize(
+    "constraints,expected",
+    [
+        # Anonymous specs without dependencies
+        (["+baz", "+bar"], "+baz+bar"),
+        (["@2.0:", "@:5.1", "+bar"], "@2.0:5.1 +bar"),
+        # Anonymous specs with dependencies
+        (["^mpich@3.2", "^mpich@:4.0+foo"], "^mpich@3.2 +foo"),
+        # Mix a real package with a virtual one. This test
+        # should fail if we start using the repository
+        (["^mpich@3.2", "^mpi+foo"], "^mpich@3.2 ^mpi+foo"),
+        # Non direct dependencies + direct dependencies
+        (["^mpich", "%mpich"], "%mpich"),
+        (["^foo", "^bar %foo"], "^foo ^bar%foo"),
+        (["^foo", "%bar %foo"], "%bar%foo"),
+    ],
+)
+def test_constrain_symbolically(constraints, expected):
+    """Tests the semantics of constraining a spec when we don't resolve virtuals."""
+    merged = Spec()
+    for c in constraints:
+        merged._constrain_symbolically(c)
+    assert merged == Spec(expected)
+
+    reverse_order = Spec()
+    for c in reversed(constraints):
+        reverse_order._constrain_symbolically(c)
+    assert reverse_order == Spec(expected)
+
+
+@pytest.mark.parametrize(
+    "parent_str,child_str,kwargs,expected_str,expected_repr",
+    [
+        (
+            "mpileaks",
+            "callpath",
+            {"virtuals": ()},
+            "mpileaks ^callpath",
+            "DependencySpec('mpileaks', 'callpath', depflag=0, virtuals=())",
+        ),
+        (
+            "mpileaks",
+            "callpath",
+            {"virtuals": ("mpi", "lapack")},
+            "mpileaks ^[virtuals=lapack,mpi] callpath",
+            "DependencySpec('mpileaks', 'callpath', depflag=0, virtuals=('lapack', 'mpi'))",
+        ),
+        (
+            "",
+            "callpath",
+            {"virtuals": ("mpi", "lapack"), "direct": True},
+            " %[virtuals=lapack,mpi] callpath",
+            "DependencySpec('', 'callpath', depflag=0, virtuals=('lapack', 'mpi'), direct=True)",
+        ),
+        (
+            "",
+            "callpath",
+            {
+                "virtuals": ("mpi", "lapack"),
+                "direct": True,
+                "propagation": PropagationPolicy.PREFERENCE,
+            },
+            " %%[virtuals=lapack,mpi] callpath",
+            "DependencySpec('', 'callpath', depflag=0, virtuals=('lapack', 'mpi'), direct=True,"
+            " propagation=PropagationPolicy.PREFERENCE)",
+        ),
+        (
+            "",
+            "callpath",
+            {"virtuals": (), "direct": True, "propagation": PropagationPolicy.PREFERENCE},
+            " %%callpath",
+            "DependencySpec('', 'callpath', depflag=0, virtuals=(), direct=True,"
+            " propagation=PropagationPolicy.PREFERENCE)",
+        ),
+        (
+            "mpileaks+foo",
+            "callpath+bar",
+            {"virtuals": (), "direct": True, "propagation": PropagationPolicy.PREFERENCE},
+            "mpileaks+foo %%callpath+bar",
+            "DependencySpec('mpileaks+foo', 'callpath+bar', depflag=0, virtuals=(), direct=True,"
+            " propagation=PropagationPolicy.PREFERENCE)",
+        ),
+    ],
+)
+def test_edge_representation(parent_str, child_str, kwargs, expected_str, expected_repr):
+    """Tests the string representations of edges."""
+    parent = Spec(parent_str) or Spec()
+    child = Spec(child_str) or Spec()
+    edge = DependencySpec(parent, child, depflag=0, **kwargs)
+    assert str(edge) == expected_str
+    assert repr(edge) == expected_repr
+
+
+@pytest.mark.parametrize(
+    "spec_str,assertions",
+    [
+        # Check <key>=* semantics for a "regular" variant
+        ("mpileaks foo=abc", [("foo=*", True), ("bar=*", False)]),
+        # Check the semantics for architecture related key value pairs
+        (
+            "mpileaks",
+            [
+                ("target=*", False),
+                ("os=*", False),
+                ("platform=*", False),
+                ("target=* platform=*", False),
+            ],
+        ),
+        (
+            "mpileaks target=x86_64",
+            [
+                ("target=*", True),
+                ("os=*", False),
+                ("platform=*", False),
+                ("target=* platform=*", False),
+            ],
+        ),
+        ("mpileaks os=debian6", [("target=*", False), ("os=*", True), ("platform=*", False)]),
+        ("mpileaks platform=linux", [("target=*", False), ("os=*", False), ("platform=*", True)]),
+        ("mpileaks platform=linux", [("target=*", False), ("os=*", False), ("platform=*", True)]),
+        (
+            "mpileaks platform=linux target=x86_64",
+            [
+                ("target=*", True),
+                ("os=*", False),
+                ("platform=*", True),
+                ("target=* platform=*", True),
+            ],
+        ),
+    ],
+)
+def test_attribute_existence_in_satisfies(spec_str, assertions, mock_packages, config):
+    """Tests the semantics of <key>=* when used in Spec.satisfies"""
+    s = Spec(spec_str)
+    for test, expected in assertions:
+        assert s.satisfies(test) is expected
+
+
+@pytest.mark.regression("51768")
+@pytest.mark.parametrize("spec_str", ["mpi", "%mpi", "^mpi", "%foo", "%c=gcc", "%[when=%c]c=gcc"])
+def test_specs_semantics_on_self(spec_str, mock_packages, config):
+    """Tests that an abstract spec satisfies and intersects with itself."""
+    s = Spec(spec_str)
+    assert s.satisfies(s)
+    assert s.intersects(s)
+
+
+@pytest.mark.parametrize(
+    "spec_str,expected_fmt",
+    [
+        ("mpileaks@2.2", "mpileaks@_R{@=2.2}"),
+        ("mpileaks@2.3", "mpileaks@c{@=2.3}"),
+        ("mpileaks+debug", "@_R{+debug}"),
+    ],
+)
+def test_highlighting_spec_parts(spec_str, expected_fmt, default_mock_concretization):
+    """Tests correct highlighting of non-default versions and variants"""
+    s = default_mock_concretization(spec_str)
+    expected = colorize(expected_fmt, color=True)
+    colorized_str = s.format(
+        color=True,
+        highlight_version_fn=spack.package_base.non_preferred_version,
+        highlight_variant_fn=spack.package_base.non_default_variant,
+    )
+    assert expected in colorized_str

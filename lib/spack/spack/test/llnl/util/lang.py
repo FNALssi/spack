@@ -11,7 +11,14 @@ from datetime import datetime, timedelta
 import pytest
 
 import spack.llnl.util.lang
-from spack.llnl.util.lang import dedupe, match_predicate, memoized, pretty_date, stable_args
+from spack.llnl.util.lang import (
+    Singleton,
+    SingletonInstantiationError,
+    dedupe,
+    match_predicate,
+    memoized,
+    pretty_date,
+)
 
 
 @pytest.fixture()
@@ -126,6 +133,15 @@ def test_pretty_seconds():
     assert spack.llnl.util.lang.pretty_seconds(2.1 / 1000 / 1000 / 1000 / 10) == "0.210ns"
 
 
+def test_pretty_duration():
+    assert spack.llnl.util.lang.pretty_duration(0) == "0s"
+    assert spack.llnl.util.lang.pretty_duration(45) == "45s"
+    assert spack.llnl.util.lang.pretty_duration(60) == "1m00s"
+    assert spack.llnl.util.lang.pretty_duration(125) == "2m05s"
+    assert spack.llnl.util.lang.pretty_duration(3600) == "1h00m"
+    assert spack.llnl.util.lang.pretty_duration(3661) == "1h01m"
+
+
 def test_match_predicate():
     matcher = match_predicate(lambda x: True)
     assert matcher("foo")
@@ -223,28 +239,6 @@ def test_key_ordering():
     assert hash(b) == hash(b2)
 
 
-@pytest.mark.parametrize(
-    "args1,kwargs1,args2,kwargs2",
-    [
-        # Ensure tuples passed in args are disambiguated from equivalent kwarg items.
-        (("a", 3), {}, (), {"a": 3})
-    ],
-)
-def test_unequal_args(args1, kwargs1, args2, kwargs2):
-    assert stable_args(*args1, **kwargs1) != stable_args(*args2, **kwargs2)
-
-
-@pytest.mark.parametrize(
-    "args1,kwargs1,args2,kwargs2",
-    [
-        # Ensure that kwargs are stably sorted.
-        ((), {"a": 3, "b": 4}, (), {"b": 4, "a": 3})
-    ],
-)
-def test_equal_args(args1, kwargs1, args2, kwargs2):
-    assert stable_args(*args1, **kwargs1) == stable_args(*args2, **kwargs2)
-
-
 @pytest.mark.parametrize("args, kwargs", [((1,), {}), ((), {"a": 3}), ((1,), {"a": 3})])
 def test_memoized(args, kwargs):
     @memoized
@@ -252,9 +246,8 @@ def test_memoized(args, kwargs):
         return "return-value"
 
     assert f(*args, **kwargs) == "return-value"
-    key = stable_args(*args, **kwargs)
-    assert list(f.cache.keys()) == [key]
-    assert f.cache[key] == "return-value"
+    assert f(*args, **kwargs) == "return-value"
+    assert f.cache_info().hits == 1
 
 
 @pytest.mark.parametrize("args, kwargs", [(([1],), {}), ((), {"a": [1]})])
@@ -265,12 +258,8 @@ def test_memoized_unhashable(args, kwargs):
     def f(*args, **kwargs):
         return None
 
-    with pytest.raises(spack.llnl.util.lang.UnhashableArguments) as exc_info:
+    with pytest.raises(TypeError, match="unhashable type:"):
         f(*args, **kwargs)
-    exc_msg = str(exc_info.value)
-    key = stable_args(*args, **kwargs)
-    assert str(key) in exc_msg
-    assert "function 'f'" in exc_msg
 
 
 def test_dedupe():
@@ -357,6 +346,29 @@ def test_fnmatch_multiple():
     assert not regex.match("libbar.so.1")
     assert not regex.match("libfoo.solibbar.so")
     assert not regex.match("libbaz.so")
+
+
+def _attr_error_factory():
+    raise AttributeError("Could not make something")
+
+
+def test_singleton_instantiation_attr_failure():
+    """
+    If an AttributeError occurs during the instantiation of a Singleton
+    object, we want to see that error.
+    """
+    x = Singleton(_attr_error_factory)
+    with pytest.raises(SingletonInstantiationError) as last_exception:
+        x.something
+
+    def follow_exceptions(e):
+        while e:
+            yield e
+            e = e.__cause__ or e.__context__
+
+    assert any(
+        "Could not make something" in str(e) for e in follow_exceptions(last_exception.value)
+    )
 
 
 class TestPriorityOrderedMapping:

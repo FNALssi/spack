@@ -34,7 +34,7 @@ COMPILER_NAME_TRANSLATION = {"nvidia": "nvhpc", "rocm": "llvm-amdgpu", "clang": 
 def translated_compiler_name(manifest_compiler_name):
     """
     When creating a Compiler object, Spack expects a name matching
-    one of the classes in `spack.compilers.config`. Names in the Cray manifest
+    one of the classes in :mod:`spack.compilers.config`. Names in the Cray manifest
     may differ; for cases where we know the name refers to a compiler in
     Spack, this function translates it automatically.
 
@@ -182,6 +182,7 @@ def spec_from_entry(entry):
     spec._hashes_final = True
     spec.external_path = entry["prefix"]
     spec.origin = "external-db"
+    spec.namespace = pkg_cls.namespace
     spack.spec.Spec.ensure_valid_variants(spec)
 
     return spec

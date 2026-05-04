@@ -15,7 +15,6 @@ from contextlib import contextmanager
 
 import pytest
 
-import spack
 import spack.binary_distribution
 import spack.database
 import spack.deptypes as dt
@@ -231,7 +230,7 @@ def test_uploading_with_base_image_in_docker_image_manifest_v2_format(
         (rootfs / "bin").mkdir(parents=True)
         (rootfs / "bin" / "sh").write_text("hello world")
         tarball = tmp_path / "base.tar.gz"
-        with gzip_compressed_tarfile(tarball) as (tar, tar_gz_checksum, tar_checksum):
+        with gzip_compressed_tarfile(str(tarball)) as (tar, tar_gz_checksum, tar_checksum):
             tar.add(rootfs, arcname=".")
         tar_gz_digest = Digest.from_sha256(tar_gz_checksum.hexdigest())
         tar_digest = Digest.from_sha256(tar_checksum.hexdigest())
@@ -257,7 +256,7 @@ def test_uploading_with_base_image_in_docker_image_manifest_v2_format(
             "history": [
                 {
                     "created": "2015-10-31T22:22:54.690851953Z",
-                    "created_by": "/bin/sh -c #(nop) ADD file:a3bc1e842b69636f9df5256c49c5374fb4eef1e281fe3f282c65fb853ee171c5 in /",
+                    "created_by": "/bin/sh -c #(nop) ADD file:a3bc1e842b69636f9df5256c49c5374fb4eef1e281fe3f282c65fb853ee171c5 in /",  # noqa: E501
                 }
             ],
         }

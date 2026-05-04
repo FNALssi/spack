@@ -336,7 +336,7 @@ def parse_pt_dynamic(f: BinaryIO, elf: ElfFile) -> None:
     except OSError:
         raise ElfParsingError("Could not seek to PT_DYNAMIC entry")
 
-    # In case of broken ELF files, don't read beyond the advertized size.
+    # In case of broken ELF files, don't read beyond the advertised size.
     for _ in range(elf.pt_dynamic_p_filesz // dynamic_array_size):
         data = read_exactly(f, dynamic_array_size, "Malformed dynamic array entry")
         tag, val = unpack(dynamic_array_fmt, data)
@@ -677,7 +677,7 @@ def substitute_rpath_and_pt_interp_in_place_or_raise(
 
 
 def pt_interp(path: str) -> Optional[str]:
-    """Retrieve the interpreter of an executable at `path`."""
+    """Retrieve the interpreter of an executable at ``path``."""
     try:
         with open(path, "rb") as f:
             elf = parse_elf(f, interpreter=True)

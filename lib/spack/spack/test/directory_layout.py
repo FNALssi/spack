@@ -5,6 +5,7 @@
 """
 This test verifies that the Spack directory layout works properly.
 """
+
 import os
 import pathlib
 from pathlib import Path
@@ -15,7 +16,6 @@ import spack.concretize
 import spack.hash_types
 import spack.paths
 import spack.repo
-import spack.spec
 import spack.util.file_cache
 from spack.directory_layout import DirectoryLayout, InvalidDirectoryLayoutParametersError
 from spack.llnl.path import path_to_os_path

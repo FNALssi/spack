@@ -10,7 +10,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, cast
 
 import spack.caches
 import spack.llnl.path
@@ -317,10 +317,16 @@ def dynamic_linker_filter_for(node: spack.spec.Spec) -> Optional[DefaultDynamicL
 
 
 def compiler_spec(node: spack.spec.Spec) -> Optional[spack.spec.Spec]:
-    """Returns the compiler spec associated with the node passed as argument.
+    """Returns a compiler :class:`~spack.spec.Spec` associated with the node passed as argument.
 
-    The function looks for a "c", "cxx", and "fortran" compiler in that order,
-    and returns the first found. If none is found, returns None.
+    The function looks for a ``c``, ``cxx``, and ``fortran`` compiler in that order,
+    and returns the first found. If the node does not depend on any of these languages,
+    it returns :obj:`None`.
+
+    Use of this function is *discouraged*, because a single spec can have multiple compilers
+    associated with it, and this function only returns one of them. It can be better to refer to
+    compilers on a per-language basis, through the language virtuals: ``spec["c"]``,
+    ``spec["cxx"]``, and ``spec["fortran"]``.
     """
     for language in ("c", "cxx", "fortran"):
         candidates = node.dependencies(virtuals=[language])
@@ -374,7 +380,6 @@ class FileCompilerCache(CompilerCache):
 
     def __init__(self, cache: "FileCache") -> None:
         self.cache = cache
-        self.cache.init_entry(self.name)
         self._data: Dict[str, Dict[str, Optional[str]]] = {}
 
     def _get_entry(self, key: str, *, allow_empty: bool) -> Optional[CompilerCacheEntry]:
@@ -389,13 +394,16 @@ class FileCompilerCache(CompilerCache):
 
     def get(self, compiler: spack.spec.Spec) -> CompilerCacheEntry:
         # Cache hit
-        try:
-            with self.cache.read_transaction(self.name) as f:
-                assert f is not None
-                self._data = json.loads(f.read())
-                assert isinstance(self._data, dict)
-        except (json.JSONDecodeError, AssertionError):
-            self._data = {}
+        with self.cache.read_transaction(self.name) as f:
+            if f is not None:
+                try:
+                    self._data = json.loads(f.read())
+                    if not isinstance(self._data, dict):
+                        self._data = {}
+                except json.JSONDecodeError:
+                    self._data = {}
+            else:
+                self._data = {}
 
         key = self._key(compiler)
         value = self._get_entry(key, allow_empty=False)
@@ -404,11 +412,14 @@ class FileCompilerCache(CompilerCache):
 
         # Cache miss
         with self.cache.write_transaction(self.name) as (old, new):
-            try:
-                assert old is not None
-                self._data = json.loads(old.read())
-                assert isinstance(self._data, dict)
-            except (json.JSONDecodeError, AssertionError):
+            if old is not None:
+                try:
+                    self._data = json.loads(old.read())
+                    if not isinstance(self._data, dict):
+                        self._data = {}
+                except json.JSONDecodeError:
+                    self._data = {}
+            else:
                 self._data = {}
 
             # Use cache entry that may have been created by another process in the meantime.
@@ -432,6 +443,4 @@ def _make_compiler_cache():
     return FileCompilerCache(spack.caches.MISC_CACHE)
 
 
-COMPILER_CACHE: CompilerCache = spack.llnl.util.lang.Singleton(  # type: ignore
-    _make_compiler_cache
-)
+COMPILER_CACHE = cast(CompilerCache, spack.llnl.util.lang.Singleton(_make_compiler_cache))

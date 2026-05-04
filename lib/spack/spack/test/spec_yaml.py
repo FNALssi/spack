@@ -7,6 +7,7 @@
 The YAML and JSON formats preserve DAG information in the spec.
 
 """
+
 import collections
 import collections.abc
 import gzip
@@ -26,7 +27,6 @@ import spack.hash_types as ht
 import spack.paths
 import spack.repo
 import spack.spec
-import spack.test.conftest
 import spack.util.spack_json as sjson
 import spack.util.spack_yaml as syaml
 from spack.spec import Spec, save_dependency_specfiles
@@ -186,8 +186,8 @@ def test_ordered_read_not_required_for_consistent_dag_hash(
     # Dump to YAML and JSON
     yaml_string = syaml.dump(spec_dict, default_flow_style=False)
     yaml_string_rev = syaml.dump(spec_dict_rev, default_flow_style=False)
-    json_string = sjson.dump(spec_dict)
-    json_string_rev = sjson.dump(spec_dict_rev)
+    json_string = sjson.dumps(spec_dict)
+    json_string_rev = sjson.dumps(spec_dict_rev)
 
     # spec yaml is ordered like the spec dict
     assert yaml_string == spec_yaml
@@ -441,9 +441,10 @@ def test_load_json_specfiles(specfile, expected_hash, reader_cls):
     assert s2.format("{compiler.name}") == "gcc"
     assert s2.format("{compiler.version}") != "none"
 
-    # Ensure satisfies still works with compilers
+    # Ensure satisfies works with compilers and direct dependencies
     assert s2.satisfies("%gcc")
     assert s2.satisfies("%gcc@9.4.0")
+    assert s2.satisfies("%zlib")
 
 
 def test_anchorify_1():
@@ -547,3 +548,25 @@ def test_direct_edges_and_round_tripping_to_dict(spec_str, default_mock_concreti
             continue
         for dependency_data in node["dependencies"]:
             assert "direct" not in dependency_data["parameters"]
+
+
+def test_pickle_preserves_identity_and_prefix(default_mock_concretization):
+    """When pickling multiple specs that share dependencies, the identity of those dependencies
+    should be preserved when unpickling."""
+    mpileaks_before: Spec = default_mock_concretization("mpileaks")
+    callpath_before = mpileaks_before.dependencies("callpath")[0]
+    callpath_before.set_prefix("/fake/prefix/callpath")
+    specs_before = [mpileaks_before, callpath_before]
+    specs_after = pickle.loads(pickle.dumps(specs_before))
+    mpileaks_after, callpath_after = specs_after
+
+    # Test whether the mpileaks<->callpath link is preserved and corresponds to the same object
+    assert mpileaks_after is callpath_after.dependents("mpileaks")[0]
+    assert callpath_after is mpileaks_after.dependencies("callpath")[0]
+
+    # Test that we have the exact same number of unique Spec objects before and after pickling
+    num_unique_specs = lambda specs: len({id(s) for r in specs for s in r.traverse()})
+    assert num_unique_specs(specs_before) == num_unique_specs(specs_after)
+
+    # Test that the specs are the same as dicts
+    assert mpileaks_before.to_dict() == mpileaks_after.to_dict()

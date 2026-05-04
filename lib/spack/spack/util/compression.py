@@ -128,7 +128,7 @@ def _gunzip(archive_file: str) -> str:
 
 
 def _py_gunzip(archive_file: str) -> str:
-    """Returns path to gunzip'd file. Decompresses `.gz` compressed archvies via python gzip
+    """Returns path to gunzip'd file. Decompresses `.gz` compressed archives via python gzip
     module"""
     decompressed_file = os.path.basename(
         spack.llnl.url.strip_compression_extension(archive_file, "gz")
@@ -279,7 +279,7 @@ def _system_7zip(archive_file):
 def decompressor_for(path: str, extension: Optional[str] = None):
     """Returns appropriate decompression/extraction algorithm function pointer
     for provided extension. If extension is none, it is computed
-    from the `path` and the decompression function is derived
+    from the ``path`` and the decompression function is derived
     from that information."""
     if not extension:
         extension = extension_from_magic_numbers(path, decompress=True)
@@ -522,7 +522,7 @@ def extension_from_magic_numbers_by_stream(
     """Returns the typical extension for the opened file, without leading ``.``, based on its magic
     numbers.
 
-    If the stream does not represent file type recongized by Spack (see
+    If the stream does not represent file type recognized by Spack (see
     :py:data:`SUPPORTED_FILETYPES`), the method will return None
 
     Args:
@@ -558,7 +558,7 @@ def _maybe_abbreviate_extension(path: str, extension: str) -> str:
 
 def extension_from_magic_numbers(path: str, decompress: bool = False) -> Optional[str]:
     """Return typical extension without leading ``.`` of a compressed file or archive at the given
-    path, based on its magic numbers, similar to the `file` utility. Notice that the extension
+    path, based on its magic numbers, similar to the ``file`` utility. Notice that the extension
     returned from this function may not coincide with the file's given extension.
 
     Args:

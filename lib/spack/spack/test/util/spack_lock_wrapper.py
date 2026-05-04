@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
 """Tests for Spack's wrapper module around spack.llnl.util.lock."""
+
 import os
 import pathlib
 
@@ -33,6 +34,7 @@ def test_disable_locking(tmp_path: pathlib.Path):
 
 # "Disable" mock_stage fixture to avoid subdir permissions issues on cleanup.
 @pytest.mark.nomockstage
+@pytest.mark.skipif(getuid() == 0, reason="user is root")
 def test_lock_checks_user(tmp_path: pathlib.Path):
     """Ensure lock checks work with a self-owned, self-group repo."""
     uid = getuid()

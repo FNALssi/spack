@@ -8,6 +8,7 @@ Do not import other ``spack`` modules here. This module is used
 throughout Spack and should bring in a minimal number of external
 dependencies.
 """
+
 import os
 from pathlib import PurePath
 
@@ -115,9 +116,6 @@ default_user_bootstrap_path = os.path.join(user_cache_path, "bootstrap")
 
 #: transient caches for Spack data (virtual cache, patch sha256 lookup, etc.)
 default_misc_cache_path = os.path.join(user_cache_path, spack_instance_id, "cache")
-
-#: concretization cache for Spack concretizations
-default_conc_cache_path = os.path.join(default_misc_cache_path, "concretization")
 
 # Below paths pull configuration from the host environment.
 #
