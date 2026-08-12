@@ -202,7 +202,7 @@ def pull_checkout_tag(
         fetch_args.append(f"--depth={depth}")
 
     git_exe("fetch", *fetch_args, remote)
-    git_exe("checkout", tag)
+    git_exe("checkout", "--quiet", tag)
 
 
 def pull_checkout_branch(
